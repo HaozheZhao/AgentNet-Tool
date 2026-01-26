@@ -62,6 +62,7 @@ class Action:
         self.key: tuple = event["key"]
         self.transformed: bool = False
         self.description: str = None
+        self.justification: str = None  # annotator's justification for why this action is necessary
         self.vis: bool = True
         self.show_all_move: bool = False
         self.exception = False
@@ -86,6 +87,7 @@ class Action:
             "id",
             "action",
             "description",
+            "justification",
             "start_time",
             "end_time",
             "time_stamp",

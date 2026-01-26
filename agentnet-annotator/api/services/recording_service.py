@@ -420,9 +420,22 @@ class RecordingService:
         if os.path.exists(complete_events_path):
             complete_events_data = read_encrypted_jsonl(complete_events_path)
             ids_left = [event["id"] for event in events_data]
-            new_complete_data = [
-                action for action in complete_events_data if action["id"] in ids_left
-            ]
+
+            # Create a map of vis_events for quick lookup of justification
+            vis_events_map = {event["id"]: event for event in events_data}
+
+            new_complete_data = []
+            for action in complete_events_data:
+                if action["id"] in ids_left:
+                    # Sync justification from vis_events to complete_events
+                    if action["id"] in vis_events_map:
+                        vis_event = vis_events_map[action["id"]]
+                        if "justification" in vis_event:
+                            action["justification"] = vis_event["justification"]
+                        if "description" in vis_event:
+                            action["description"] = vis_event["description"]
+                    new_complete_data.append(action)
+
             write_encrypted_jsonl(complete_events_path, new_complete_data)
 
     def _get_videos_folder_path(self, recording_name: str, verifying: bool) -> str:

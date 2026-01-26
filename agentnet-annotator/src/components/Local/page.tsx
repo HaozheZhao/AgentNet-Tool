@@ -225,6 +225,7 @@ export interface eventProp {
     description: string | null; //one-sentence description of the event
     element_text: string | null;
     axtree: Record<string, any> | null;
+    justification: string | null; //annotator's justification for why this action is necessary
 }
 
 interface statusProp {
