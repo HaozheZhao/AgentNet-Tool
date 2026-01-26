@@ -260,6 +260,7 @@ const Page = () => {
     const [message, setMessage] = useState("");
     const [severity, setSeverity] = useState("success"); // 'success', 'error', 'warning', 'neutral'
     const [isEditing, setIsEditing] = useState(eventsList.map(() => false));
+    const [isEditingJustification, setIsEditingJustification] = useState<{[key: number]: boolean}>({});
     const [playing, setPlaying] = useState(true);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [isUploading, setIsUploading] = useState(false);
@@ -590,6 +591,8 @@ const Page = () => {
             newEventsList[index].action = e;
         } else if (key === "description") {
             newEventsList[index].description = e;
+        } else if (key === "justification") {
+            newEventsList[index].justification = e;
         }
 
         // Save the operation to history for undo and clear redo stack
@@ -607,6 +610,18 @@ const Page = () => {
         // Apply changes
         setEventsList(newEventsList);
         setIsDirty(true);
+    };
+
+    // Handle justification edit toggle
+    const handleEditJustification = (index: number) => {
+        setIsEditingJustification(prev => ({ ...prev, [index]: true }));
+    };
+
+    // Handle justification complete (save and exit edit mode)
+    const handleCompleteJustification = (index: number, value: string) => {
+        handleChange(value, index, "justification");
+        setIsEditingJustification(prev => ({ ...prev, [index]: false }));
+        showSuccess(`Justification for step ${index + 1} saved`);
     };
 
     // Undo the last operation
@@ -1758,6 +1773,105 @@ const Page = () => {
                                                             }
                                                             index={index}
                                                         />
+                                                    )}
+
+                                                    {/* Justification Section */}
+                                                    {index === activeStep && (
+                                                        <Box
+                                                            sx={{
+                                                                mt: 1,
+                                                                pt: 1,
+                                                                borderTop: '1px solid',
+                                                                borderColor: 'divider',
+                                                                width: '100%',
+                                                            }}
+                                                        >
+                                                            <Typography
+                                                                level="body-xs"
+                                                                sx={{
+                                                                    fontWeight: 'bold',
+                                                                    color: 'primary.main',
+                                                                    mb: 0.5,
+                                                                }}
+                                                            >
+                                                                Justification:
+                                                            </Typography>
+                                                            {isEditingJustification[index] ? (
+                                                                <Box>
+                                                                    <textarea
+                                                                        value={event.justification || ''}
+                                                                        onChange={(e) => {
+                                                                            const newEventsList = [...eventsList];
+                                                                            newEventsList[index].justification = e.target.value;
+                                                                            setEventsList(newEventsList);
+                                                                        }}
+                                                                        placeholder="Explain why this action is necessary for completing the task..."
+                                                                        rows={2}
+                                                                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 text-xs leading-5 dark:ring-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                                                                        style={{ resize: 'vertical', minHeight: '40px' }}
+                                                                    />
+                                                                    <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="solid"
+                                                                            color="success"
+                                                                            onClick={() => handleCompleteJustification(index, event.justification || '')}
+                                                                            sx={{ fontSize: '0.7rem', py: 0.25, px: 1 }}
+                                                                        >
+                                                                            Complete
+                                                                        </Button>
+                                                                        <Button
+                                                                            size="sm"
+                                                                            variant="outlined"
+                                                                            color="neutral"
+                                                                            onClick={() => setIsEditingJustification(prev => ({ ...prev, [index]: false }))}
+                                                                            sx={{ fontSize: '0.7rem', py: 0.25, px: 1 }}
+                                                                        >
+                                                                            Cancel
+                                                                        </Button>
+                                                                    </Box>
+                                                                </Box>
+                                                            ) : (
+                                                                <Box>
+                                                                    <Typography
+                                                                        level="body-xs"
+                                                                        sx={{
+                                                                            color: event.justification ? 'text.secondary' : 'text.tertiary',
+                                                                            fontStyle: event.justification ? 'normal' : 'italic',
+                                                                            mb: 0.5,
+                                                                        }}
+                                                                    >
+                                                                        {event.justification || 'No justification provided'}
+                                                                    </Typography>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outlined"
+                                                                        color="primary"
+                                                                        startDecorator={<CreateIcon sx={{ fontSize: '0.8rem' }} />}
+                                                                        onClick={() => handleEditJustification(index)}
+                                                                        sx={{ fontSize: '0.7rem', py: 0.25, px: 1 }}
+                                                                    >
+                                                                        {event.justification ? 'Edit' : 'Add Justification'}
+                                                                    </Button>
+                                                                </Box>
+                                                            )}
+                                                        </Box>
+                                                    )}
+
+                                                    {/* Show justification preview for non-active steps if it exists */}
+                                                    {index !== activeStep && event.justification && (
+                                                        <Box sx={{ mt: 0.5 }}>
+                                                            <Typography
+                                                                level="body-xs"
+                                                                sx={{
+                                                                    color: 'success.main',
+                                                                    fontStyle: 'italic',
+                                                                    fontSize: '0.65rem',
+                                                                }}
+                                                            >
+                                                                Justification provided
+                                                            </Typography>
+                                                        </Box>
                                                     )}
                                                 </Box>
                                             </Badge>
