@@ -39,7 +39,7 @@ def upload_recording(recording_name):
 
         # upload_recording_name = timestamp + "_" + recording_name
 
-        oss_path = "recordings/" + upload_recording_name
+        oss_path = "recordings_new/" + upload_recording_name
         # logger.warning(post_data)
 
         try:
