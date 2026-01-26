@@ -35,7 +35,7 @@ def upload_recording(recording_name):
             data = json.load(f)
             task_name=data['task_name']
 
-        upload_recording_name = task_name+"_"+timestamp + "_" + recording_name
+        upload_recording_name = timestamp + "_" + task_name + "_" + recording_name
 
         # upload_recording_name = timestamp + "_" + recording_name
 
