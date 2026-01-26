@@ -74,6 +74,23 @@ echo ""
 echo "Installing Python dependencies..."
 pip install -r "${SCRIPT_DIR}/requirements_ubuntu.txt"
 
+# Fix OpenCV installation with GStreamer support
+echo ""
+echo "Fixing OpenCV installation with GStreamer support..."
+
+# Remove any pip-installed OpenCV packages
+echo "Removing pip-installed OpenCV packages..."
+python -m pip uninstall -y opencv-python opencv-python-headless opencv-contrib-python 2>/dev/null || true
+
+# Remove any conda-installed OpenCV packages
+echo "Removing conda-installed OpenCV packages..."
+conda remove -y opencv libopencv py-opencv 2>/dev/null || true
+
+# Install OpenCV with GStreamer support from conda-forge
+echo "Installing OpenCV with GStreamer support from conda-forge..."
+conda install -y -c conda-forge opencv py-opencv libopencv \
+  gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly
+
 # Install Node.js dependencies
 echo ""
 echo "Installing Node.js dependencies..."
