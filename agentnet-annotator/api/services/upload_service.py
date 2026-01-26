@@ -29,7 +29,7 @@ def upload_recording(recording_name):
         # data=request.json
         # task_name=data.get("task_name")
 
-        path = os.path.join("/home/user/Documents/AgentNetRecordings", recording_name, "task_name.json")
+        path = os.path.join(RECORDING_DIR, recording_name, "task_name.json")
         task_name=""
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
