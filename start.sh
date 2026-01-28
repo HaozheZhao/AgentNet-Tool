@@ -29,10 +29,11 @@ fi
 
 # Initialize conda
 # Try common conda installation paths
+HOME_PATH=/home/zhaohaozhe
 CONDA_PATHS=(
     "${CONDA_PATH}/etc/profile.d/conda.sh"
-    "${HOME}/miniconda3/etc/profile.d/conda.sh"
-    "${HOME}/anaconda3/etc/profile.d/conda.sh"
+    "${HOME_PATH}/miniconda3/etc/profile.d/conda.sh"
+    "${HOME_PATH}/anaconda3/etc/profile.d/conda.sh"
     "/opt/conda/etc/profile.d/conda.sh"
     "/usr/local/miniconda3/etc/profile.d/conda.sh"
 )
