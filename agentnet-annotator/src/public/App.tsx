@@ -85,7 +85,7 @@ export default function App() {
   const [showCheck, setShowCheck] = React.useState(() => {
     return localStorage.getItem("checkCompleted") !== "true";
   });
-  const [showTerms, setShowTerms] = React.useState(false);
+  // const [showTerms, setShowTerms] = React.useState(false);
 
 
   React.useEffect(() => {
@@ -117,17 +117,17 @@ export default function App() {
     localStorage.setItem("checkCompleted", "true");
     setShowCheck(false);
     // 完成 Check 后显示 Terms
-    setShowTerms(true);
+    // setShowTerms(true);
   };
 
-  const handleTermsAgree = async () => {
-    setShowTerms(false);
-  };
+  // const handleTermsAgree = async () => {
+  //   setShowTerms(false);
+  // };
 
-  const handleTermsDisagree = async () => {
-    setShowTerms(false);
-    navigate("/");
-  };
+  // const handleTermsDisagree = async () => {
+  //   setShowTerms(false);
+  //   navigate("/");
+  // };
 
   // 如果需要显示 Check 或 Terms，不渲染主应用内容
   if (showCheck) {
@@ -150,13 +150,17 @@ export default function App() {
   return (
     <CssVarsProvider disableTransitionOnChange>
       <CssBaseline />
-      {showTerms ? (<TermsAndConsent onAgree={handleTermsAgree} onDisagree={handleTermsDisagree} />
+      {<div className="flex flex-row min-h-full h-full m-0 p-0 w-full max-w-full">
+        <Sidebar tasks={tasks} init_open={sidebarOpen} />
+        <Outlet />
+      </div>
+      /* {showTerms ? (<TermsAndConsent onAgree={handleTermsAgree} onDisagree={handleTermsDisagree} />
       ) : (
         <div className="flex flex-row min-h-full h-full m-0 p-0 w-full max-w-full">
           <Sidebar tasks={tasks} init_open={sidebarOpen} />
           <Outlet />
         </div>
-      )}
+      )} */}
     </CssVarsProvider>
   );
 }
