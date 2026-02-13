@@ -27,13 +27,11 @@ else
     echo ""
 fi
 
-# Initialize conda
-# Try common conda installation paths
-HOME_PATH=/home/zhaohaozhe
+# Initialize conda - try common locations using $HOME (works for any user)
 CONDA_PATHS=(
     "${CONDA_PATH}/etc/profile.d/conda.sh"
-    "${HOME_PATH}/miniconda3/etc/profile.d/conda.sh"
-    "${HOME_PATH}/anaconda3/etc/profile.d/conda.sh"
+    "${HOME}/miniconda3/etc/profile.d/conda.sh"
+    "${HOME}/anaconda3/etc/profile.d/conda.sh"
     "/opt/conda/etc/profile.d/conda.sh"
     "/usr/local/miniconda3/etc/profile.d/conda.sh"
 )
@@ -48,7 +46,7 @@ done
 
 if [ -z "$CONDA_INIT" ]; then
     echo -e "${RED}Error: Could not find conda installation.${NC}"
-    echo "Please set CONDA_PATH in your .env file or ensure conda is installed."
+    echo "Please run ./setup.sh first, or set CONDA_PATH in your .env file."
     exit 1
 fi
 

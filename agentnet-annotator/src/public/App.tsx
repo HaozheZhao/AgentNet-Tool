@@ -82,9 +82,8 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const navigate = useNavigate();
 
-  const [showCheck, setShowCheck] = React.useState(() => {
-    return localStorage.getItem("checkCompleted") !== "true";
-  });
+  // Skip the first-time check/terms pages - go straight to the app
+  const [showCheck, setShowCheck] = React.useState(false);
   // const [showTerms, setShowTerms] = React.useState(false);
 
 
