@@ -39,7 +39,8 @@ def upload_recording(recording_name):
 
         # upload_recording_name = timestamp + "_" + recording_name
 
-        oss_path = "recordings_new/" + upload_recording_name
+        upload_folder = os.getenv("OSS_UPLOAD_FOLDER", "recordings_new")
+        oss_path = upload_folder + "/" + upload_recording_name
         # logger.warning(post_data)
 
         try:
