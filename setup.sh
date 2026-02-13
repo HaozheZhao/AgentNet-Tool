@@ -61,6 +61,12 @@ else
 fi
 
 echo -e "${GREEN}Conda is ready: $(conda --version)${NC}"
+
+# Accept conda Terms of Service for default channels (required since conda 25.x)
+echo "Accepting conda channel Terms of Service..."
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main 2>/dev/null || true
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r 2>/dev/null || true
+
 echo ""
 
 # ==========================================
