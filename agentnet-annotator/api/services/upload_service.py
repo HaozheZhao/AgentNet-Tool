@@ -18,16 +18,14 @@ from core.logger import logger
 from core.constants import SUCCEED, FAILED
 
 
-def upload_recording(recording_name):
+def upload_recording(recording_name, annotator_info=None):
 
     from core.cloud_v2 import upload_folder_concurrent
+    from datetime import datetime
 
     try:
         timestamp = get_hk_time()
         recording_path = os.path.join(RECORDING_DIR, recording_name)
-
-        # data=request.json
-        # task_name=data.get("task_name")
 
         path = os.path.join(RECORDING_DIR, recording_name, "task_name.json")
         task_name=""
@@ -35,13 +33,31 @@ def upload_recording(recording_name):
             data = json.load(f)
             task_name=data['task_name']
 
-        upload_recording_name = timestamp + "_" + task_name + "_" + recording_name
-
-        # upload_recording_name = timestamp + "_" + recording_name
-
         upload_folder = os.getenv("OSS_UPLOAD_FOLDER", "recordings_new")
+
+        # Include username in upload folder name if annotator_info is provided
+        username = ""
+        if annotator_info and annotator_info.get("username"):
+            username = annotator_info["username"]
+            upload_recording_name = timestamp + "_" + task_name + "_" + username + "_" + recording_name
+        else:
+            upload_recording_name = timestamp + "_" + task_name + "_" + recording_name
+
         oss_path = upload_folder + "/" + upload_recording_name
-        # logger.warning(post_data)
+
+        # Write annotator_info.json to recording folder before uploading
+        if annotator_info:
+            annotator_info_path = os.path.join(recording_path, "annotator_info.json")
+            info_data = {
+                "username": annotator_info.get("username", ""),
+                "task_id": annotator_info.get("task_id", ""),
+                "query": annotator_info.get("query", ""),
+                "upload_timestamp": datetime.now().isoformat(),
+                "oss_upload_folder": oss_path,
+            }
+            with open(annotator_info_path, "w", encoding="utf-8") as f:
+                json.dump(info_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"Written annotator_info.json to {annotator_info_path}")
 
         try:
             upload_folder_concurrent(
@@ -85,17 +101,20 @@ class UploadService:
 
     def enqueue_upload(self, data):
         recording_name = data.get("recording_name", "")
-        self.upload_queue.put(recording_name)
+        annotator_info = data.get("annotator_info", None)
+        self.upload_queue.put((recording_name, annotator_info))
 
     def _process_upload_queue(self):
         while True:
-            recording_name = self.upload_queue.get()
-            if recording_name is None:
+            item = self.upload_queue.get()
+            if item is None:
                 self.upload_queue.task_done()
                 continue
 
+            recording_name, annotator_info = item
+
             try:
-                result = upload_recording(recording_name)
+                result = upload_recording(recording_name, annotator_info)
                 self.socketio.emit("upload_recording", result)
             except Exception as e:
                 logger.exception(f"Upload_recording failed: {str(e)}")

@@ -37,7 +37,15 @@ import {
     Tab,
     Slider,
     Card,
+    Input,
+    FormLabel,
+    FormControl,
+    CardContent,
 } from "@mui/joy";
+import LockIcon from "@mui/icons-material/Lock";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import PersonIcon from "@mui/icons-material/Person";
 import Popper from "@mui/material/Popper";
 import { tabClasses } from "@mui/joy/Tab";
 import { stepClasses } from "@mui/joy/Step";
@@ -285,6 +293,14 @@ const Page = () => {
     const [operationHistory, setOperationHistory] = useState<any[]>([]); // Stack for undo operations
     const [redoStack, setRedoStack] = useState<any[]>([]); // Stack for redo operations (optional)
     const [dirty, setIsDirty] = useState(false);
+
+    // Annotator info state
+    const [annotatorUsername, setAnnotatorUsername] = useState(() => {
+        return localStorage.getItem("annotator_username") || "";
+    });
+    const [annotatorTaskId, setAnnotatorTaskId] = useState("");
+    const [annotatorQuery, setAnnotatorQuery] = useState("");
+    const [annotatorInfoLocked, setAnnotatorInfoLocked] = useState(false);
     // Block navigating elsewhere when data has been entered into the input
     let blocker = useBlocker(({ currentLocation, nextLocation }) => dirty);
     useEffect(() => {
@@ -339,6 +355,10 @@ const Page = () => {
         setActiveStep(0);
         setCutTaskName("");
         setCutDescription("");
+        // Reset annotator task-specific fields when recording changes
+        setAnnotatorTaskId("");
+        setAnnotatorQuery("");
+        setAnnotatorInfoLocked(false);
     }, [recordingData]);
 
     useEffect(() => {
@@ -729,6 +749,16 @@ const Page = () => {
     };
 
     const handleUploadRecording = async () => {
+        // Validate annotator info before upload
+        if (!annotatorInfoLocked) {
+            showError("Please fill in and save annotator info before uploading");
+            return;
+        }
+        if (!annotatorUsername.trim() || !annotatorTaskId.trim() || !annotatorQuery.trim()) {
+            showError("All annotator info fields (Username, Task ID, Query) are required");
+            return;
+        }
+
         console.log(eventsList);
         const confirmResponse = await fetch(
             `http://localhost:5328/api/recording/${recordingName}/confirm`,
@@ -764,6 +794,11 @@ const Page = () => {
 
             SocketService.Post("upload_recording", {
                 recording_name: recordingName,
+                annotator_info: {
+                    username: annotatorUsername.trim(),
+                    task_id: annotatorTaskId.trim(),
+                    query: annotatorQuery.trim(),
+                },
             })
                 .then((data) => {
                     console.log(
@@ -1075,8 +1110,122 @@ const Page = () => {
         }
     };
 
+    const handleSaveAnnotatorInfo = () => {
+        if (!annotatorUsername.trim()) {
+            showError("Username is required");
+            return;
+        }
+        if (!annotatorTaskId.trim()) {
+            showError("Task ID is required");
+            return;
+        }
+        if (!annotatorQuery.trim()) {
+            showError("Query is required");
+            return;
+        }
+        localStorage.setItem("annotator_username", annotatorUsername.trim());
+        setAnnotatorInfoLocked(true);
+    };
+
+    const handleEditAnnotatorInfo = () => {
+        setAnnotatorInfoLocked(false);
+    };
+
     return (
         <div className="h-full max-h-full overflow-y-auto w-full max-w-full overflow-x-hidden flex flex-col">
+            {/* Annotator Info Block */}
+            <Card
+                variant="outlined"
+                sx={{
+                    mx: 2,
+                    mt: 1,
+                    mb: 1,
+                    p: 1.5,
+                    borderColor: annotatorInfoLocked ? "success.300" : "warning.300",
+                    bgcolor: annotatorInfoLocked ? "success.50" : "warning.50",
+                }}
+            >
+                <CardContent>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                        <PersonIcon fontSize="small" />
+                        <Typography level="title-sm" sx={{ fontWeight: 600 }}>
+                            Annotator Info
+                        </Typography>
+                        {annotatorInfoLocked && (
+                            <Chip size="sm" color="success" variant="soft" startDecorator={<LockIcon sx={{ fontSize: 14 }} />}>
+                                Locked
+                            </Chip>
+                        )}
+                    </Box>
+                    <Grid container spacing={1} sx={{ alignItems: "flex-end" }}>
+                        <Grid xs={3}>
+                            <FormControl size="sm">
+                                <FormLabel>Username</FormLabel>
+                                <Input
+                                    size="sm"
+                                    placeholder="Your name"
+                                    value={annotatorUsername}
+                                    onChange={(e) => setAnnotatorUsername(e.target.value)}
+                                    readOnly={annotatorInfoLocked}
+                                    variant={annotatorInfoLocked ? "plain" : "outlined"}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid xs={3}>
+                            <FormControl size="sm">
+                                <FormLabel>Task ID</FormLabel>
+                                <Input
+                                    size="sm"
+                                    placeholder="Task identifier"
+                                    value={annotatorTaskId}
+                                    onChange={(e) => setAnnotatorTaskId(e.target.value)}
+                                    readOnly={annotatorInfoLocked}
+                                    variant={annotatorInfoLocked ? "plain" : "outlined"}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid xs={4}>
+                            <FormControl size="sm">
+                                <FormLabel>Query</FormLabel>
+                                <Input
+                                    size="sm"
+                                    placeholder="Task query/instruction"
+                                    value={annotatorQuery}
+                                    onChange={(e) => setAnnotatorQuery(e.target.value)}
+                                    readOnly={annotatorInfoLocked}
+                                    variant={annotatorInfoLocked ? "plain" : "outlined"}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid xs={2}>
+                            {annotatorInfoLocked ? (
+                                <Button
+                                    size="sm"
+                                    variant="outlined"
+                                    color="neutral"
+                                    startDecorator={<EditIcon sx={{ fontSize: 16 }} />}
+                                    onClick={handleEditAnnotatorInfo}
+                                    sx={{ width: "100%" }}
+                                >
+                                    Edit
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    variant="solid"
+                                    color="primary"
+                                    startDecorator={<SaveIcon sx={{ fontSize: 16 }} />}
+                                    onClick={handleSaveAnnotatorInfo}
+                                    sx={{ width: "100%" }}
+                                >
+                                    Save
+                                </Button>
+                            )}
+                        </Grid>
+                    </Grid>
+                </CardContent>
+            </Card>
+
             <div className="flex items-center mx-2 md:mx-4">
                 <Breadcrumbs
                     size="sm"
