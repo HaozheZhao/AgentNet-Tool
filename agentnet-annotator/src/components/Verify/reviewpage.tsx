@@ -266,10 +266,11 @@ const ReviewPage = () => {
             <div
                 style={{
                     whiteSpace: "pre-wrap",
-                    overflow: "hidden",
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
                 }}
                 onClick={() => handleEdit(index)}
-                className="text-xs text-slate-600 dark:text-slate-400 my-1 p-0 text-warp"
+                className="text-xs text-slate-600 dark:text-slate-400 my-1 p-0"
             >
                 {replaceWithKeyboardKeys(value)}
             </div>
@@ -1524,9 +1525,9 @@ const ReviewPage = () => {
                                                     {event.resolved_text && (
                                                         <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, alignItems: 'baseline' }}>
                                                             <span className="text-xs font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
-                                                                Resolved:
+                                                                Final Text:
                                                             </span>
-                                                            <div style={{ overflow: 'auto', maxWidth: '100%', whiteSpace: 'nowrap' }}>
+                                                            <div style={{ overflow: 'auto', maxWidth: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                                                 <span className="text-xs text-slate-700 dark:text-slate-300">
                                                                     {event.resolved_text}
                                                                 </span>

@@ -384,8 +384,10 @@ class Type(Action):
 
     def resolve_text(self):
         """Simulate text buffer with cursor to resolve final intended text.
-        Handles backspace deletions, arrow key cursor movement, etc."""
-        buffer = []
+        Handles backspace deletions, arrow key cursor movement, etc.
+        Produces both plain resolved_text and formatted resolved_description
+        with $key$ markers for functional keys."""
+        buffer = []  # list of items: str (character) or tuple ('key', name)
         cursor = 0
         has_editing = False
 
@@ -416,10 +418,10 @@ class Type(Action):
                 buffer.insert(cursor, ' ')
                 cursor += 1
             elif k in ('enter', 'return'):
-                buffer.insert(cursor, '\n')
+                buffer.insert(cursor, ('key', 'enter'))
                 cursor += 1
             elif k == 'tab':
-                buffer.insert(cursor, '\t')
+                buffer.insert(cursor, ('key', 'tab'))
                 cursor += 1
             elif k in FUNCTIONAL_KEYS:
                 pass  # ignore non-text functional keys (caps, f-keys, etc.)
@@ -428,7 +430,28 @@ class Type(Action):
                 buffer.insert(cursor, key)
                 cursor += 1
 
-        self.resolved_text = ''.join(buffer)
+        # Build resolved_text (plain text for data storage)
+        text_parts = []
+        for token in buffer:
+            if isinstance(token, tuple):
+                name = token[1]
+                if name == 'enter':
+                    text_parts.append('\n')
+                elif name == 'tab':
+                    text_parts.append('\t')
+            else:
+                text_parts.append(token)
+        self.resolved_text = ''.join(text_parts)
+
+        # Build resolved_description (with $key$ markers for UI display)
+        desc_parts = []
+        for token in buffer:
+            if isinstance(token, tuple):
+                desc_parts.append('${}$'.format(token[1]))
+            else:
+                desc_parts.append(token)
+        self.resolved_description = ''.join(desc_parts)
+
         self.has_editing = has_editing
         return self.resolved_text
 
@@ -436,18 +459,8 @@ class Type(Action):
         super().transform()
         self.resolve_text()
 
-        # Build raw key description
-        raw_desc = ""
-        for key in self.key_names:
-            raw_desc += wrap_func_key(key)
-
-        # Use resolved text in description if editing occurred
-        if self.has_editing and self.resolved_text:
-            self.description = "⌨️ Type: {} (raw: {})".format(
-                self.resolved_text, raw_desc
-            )
-        else:
-            self.description = "⌨️ Type: {}".format(raw_desc)
+        # Always use the clean resolved description (no raw correction trajectory)
+        self.description = "⌨️ Type: {}".format(self.resolved_description)
 
         logger.error("transform {}".format(self.key_names))
 
