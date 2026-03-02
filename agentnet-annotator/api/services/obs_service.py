@@ -65,11 +65,26 @@ class ObsService:
         except Exception as e:
             warnings.append(f"Could not detect screen resolution: {str(e)}")
 
-        # 2. Check OBS WebSocket connection
+        # 2. Check OBS WebSocket connection and output resolution
         try:
             import obsws_python as obs_ws
             test_client = obs_ws.ReqClient()
             test_client.get_version()
+
+            # Check OBS video output resolution
+            try:
+                video_settings = test_client.get_video_settings()
+                obs_out_w = video_settings.output_width
+                obs_out_h = video_settings.output_height
+                if obs_out_w != REQUIRED_WIDTH or obs_out_h != REQUIRED_HEIGHT:
+                    warnings.append(
+                        f"OBS output resolution is {obs_out_w}x{obs_out_h}, but annotation "
+                        f"requires {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}. Please change "
+                        f"OBS output resolution in Settings > Video > Output (Scaled) Resolution."
+                    )
+            except Exception as e:
+                warnings.append(f"Could not check OBS output resolution: {str(e)}")
+
             try:
                 test_client.base_client.ws.close()
             except Exception:

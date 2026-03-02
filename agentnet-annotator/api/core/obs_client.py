@@ -94,12 +94,10 @@ class OBSClient:
     """
     
     def __init__(
-        self, 
-        recording_path: str, 
-        metadata: dict, 
+        self,
+        recording_path: str,
+        metadata: dict,
         fps=30,
-        output_width=1920,
-        output_height=1080,
         output_filename: str = "video.mp4",
     ):
         self.metadata = metadata
@@ -137,42 +135,32 @@ class OBSClient:
 
         base_width = metadata["screen_width"]
         base_height = metadata["screen_height"]
-        
+
         if metadata["system"] == "Darwin":
             # for retina displays
             # TODO: check if external displays are messed up by this
             base_width *= 2
             base_height *= 2
-        
-        # Fix output video resolution to window resolution
-        #if base_width and base_height:
-        #    output_width = base_width
-        #    output_height = base_height
-            
-        scaled_width, scaled_height = _scale_resolution(base_width, base_height, output_width, output_height)
-        
+
+        # Use actual screen resolution as both base and output (no scaling)
         self.req_client.set_profile_parameter("Video", "BaseCX", str(base_width))
         self.req_client.set_profile_parameter("Video", "BaseCY", str(base_height))
-        self.req_client.set_profile_parameter("Video", "OutputCX", str(scaled_width))
-        self.req_client.set_profile_parameter("Video", "OutputCY", str(scaled_height))
-        #self.req_client.set_profile_parameter("Video", "OutputCX", str(base_width))
-        #self.req_client.set_profile_parameter("Video", "OutputCY", str(base_height))
-        self.req_client.set_profile_parameter("Video", "ScaleType", "lanczos")
+        self.req_client.set_profile_parameter("Video", "OutputCX", str(base_width))
+        self.req_client.set_profile_parameter("Video", "OutputCY", str(base_height))
 
-        self.req_client.set_profile_parameter("AdvOut", "RescaleRes", f"{scaled_width}x{scaled_height}")
-        self.req_client.set_profile_parameter("AdvOut", "RecRescaleRes", f"{scaled_width}x{scaled_height}")
-        self.req_client.set_profile_parameter("AdvOut", "FFRescaleRes", f"{scaled_width}x{scaled_height}")
+        self.req_client.set_profile_parameter("AdvOut", "RescaleRes", f"{base_width}x{base_height}")
+        self.req_client.set_profile_parameter("AdvOut", "RecRescaleRes", f"{base_width}x{base_height}")
+        self.req_client.set_profile_parameter("AdvOut", "FFRescaleRes", f"{base_width}x{base_height}")
 
         self.req_client.set_profile_parameter("Video", "FPSCommon", str(fps))
         self.req_client.set_profile_parameter("Video", "FPSInt", str(fps))
         self.req_client.set_profile_parameter("Video", "FPSNum", str(fps))
         self.req_client.set_profile_parameter("Video", "FPSDen", "1")
-        
+
         self.req_client.set_profile_parameter("SimpleOutput", "RecFormat2", "mp4")
         self.req_client.set_profile_parameter("AdvOut", "RecFormat2", "mp4")
-        
-        bitrate = int(_get_bitrate_mbps(scaled_width, scaled_height, fps=fps) * 1000 / 50) * 50
-        #bitrate = int(_get_bitrate_mbps(base_width, base_height, fps=fps) * 1000 / 50) * 50
+
+        bitrate = int(_get_bitrate_mbps(base_width, base_height, fps=fps) * 1000 / 50) * 50
         self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", str(bitrate))
         
         # do this in order to get pause & resume
@@ -229,11 +217,3 @@ def _get_bitrate_mbps(width: int, height: int, fps=30) -> float:
         constant = 2.418399836285939 if fps == 30 else 3.742780056500365
         return multiplier * area + constant
 
-def _scale_resolution(base_width: int, base_height: int, target_width: int,  target_height: int) -> tuple[int, int]:
-    target_area = target_width * target_height
-    aspect_ratio = base_width / base_height
-    
-    scaled_height = int((target_area / aspect_ratio) ** 0.5)
-    scaled_width = int(aspect_ratio * scaled_height)
-    
-    return scaled_width, scaled_height

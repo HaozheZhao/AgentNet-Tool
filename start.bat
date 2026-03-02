@@ -9,14 +9,9 @@ echo Starting AgentNet Annotator...
 
 if exist ".env" (
     echo Loading environment variables from .env...
-    for /f "usebackq tokens=* delims=" %%a in (".env") do (
-        set "LINE=%%a"
-        if not "!LINE!"=="" (
-            :: Skip lines starting with #
-            set "FIRST_CHAR=!LINE:~0,1!"
-            if not "!FIRST_CHAR!"=="#" (
-                set "%%a"
-            )
+    for /f "usebackq eol=# tokens=1,* delims==" %%a in (".env") do (
+        if not "%%a"=="" if not "%%b"=="" (
+            set "%%a=%%b"
         )
     )
 ) else (
@@ -44,35 +39,23 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr :5328 ^| findstr LISTENING 2^
 
 if not exist "venv\Scripts\activate.bat" (
     echo [ERROR] Virtual environment not found. Please run setup.bat first.
+    pause
     exit /b 1
 )
 
 call venv\Scripts\activate.bat
 echo [OK] Virtual environment activated.
-echo Python:
-python --version
 
 :: ==========================================
-:: 4. Check npm is available
+:: 4. Start the application
 :: ==========================================
-
-npm --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] npm not found. Please install Node.js and run setup.bat first.
-    exit /b 1
-)
-echo [OK] npm is available.
-echo Node:
-node --version
 
 echo.
-
-:: ==========================================
-:: 5. Start the application
-:: ==========================================
-
 echo Starting AgentNet Annotator application...
+echo (Close this window or press Ctrl+C to stop)
+echo.
 cd agentnet-annotator
-npm start
+call npm start
 
+pause
 endlocal
