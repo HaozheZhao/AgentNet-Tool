@@ -71,6 +71,11 @@ if errorlevel 1 (
 )
 echo [OK] Conda environment 'agentnet' activated.
 
+:: Restore Node.js in PATH (conda activate resets PATH)
+if exist "C:\Program Files\nodejs\npm.cmd" (
+    set "PATH=C:\Program Files\nodejs;!PATH!"
+)
+
 :: ==========================================
 :: 4. Start the application
 :: ==========================================

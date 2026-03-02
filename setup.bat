@@ -176,6 +176,10 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+:: Restore Node.js in PATH (conda activate resets PATH)
+if exist "C:\Program Files\nodejs\npm.cmd" (
+    set "PATH=C:\Program Files\nodejs;!PATH!"
+)
 echo [OK] Environment activated. Python:
 python --version
 
