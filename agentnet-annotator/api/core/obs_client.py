@@ -142,7 +142,18 @@ class OBSClient:
             base_width *= 2
             base_height *= 2
 
-        # Use actual screen resolution as both base and output (no scaling)
+        # Set active video resolution directly (profile params alone don't update the live pipeline)
+        self.req_client.set_video_settings(
+            fps_numerator=fps,
+            fps_denominator=1,
+            base_width=base_width,
+            base_height=base_height,
+            output_width=base_width,
+            output_height=base_height,
+        )
+        logger.info(f"OBSClient: set video settings to {base_width}x{base_height} @ {fps}fps")
+
+        # Also persist to profile config for consistency
         self.req_client.set_profile_parameter("Video", "BaseCX", str(base_width))
         self.req_client.set_profile_parameter("Video", "BaseCY", str(base_height))
         self.req_client.set_profile_parameter("Video", "OutputCX", str(base_width))
