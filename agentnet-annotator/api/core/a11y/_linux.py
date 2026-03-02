@@ -16,11 +16,26 @@ MAX_WIDTH = 1024
 
 # ── helpers ────────────────────────────────────────────────────────────
 
+def _get_pid_from_xdotool():
+    """Get active window PID via xdotool."""
+    try:
+        wid = subprocess.check_output(
+            ["xdotool", "getactivewindow"], stderr=subprocess.DEVNULL
+        ).decode().strip()
+        pid_str = subprocess.check_output(
+            ["xdotool", "getwindowpid", wid], stderr=subprocess.DEVNULL
+        ).decode().strip()
+        return int(pid_str)
+    except Exception:
+        return None
+
+
 def _find_active_window():
     """Find the currently active/focused window via AT-SPI.
 
     Returns (app_accessible, window_accessible) or (None, None).
     """
+    # Strategy 1: Check STATE_ACTIVE / STATE_FOCUSED on windows
     desktop = Atspi.get_desktop(0)
     for i in range(desktop.get_child_count()):
         try:
@@ -36,6 +51,28 @@ def _find_active_window():
                     return app, win
         except Exception:
             continue
+
+    # Strategy 2: Use xdotool to get PID, then find app by PID
+    pid = _get_pid_from_xdotool()
+    if pid is not None:
+        for i in range(desktop.get_child_count()):
+            try:
+                app = desktop.get_child_at_index(i)
+                if app is None:
+                    continue
+                try:
+                    app_pid = app.get_process_id()
+                except Exception:
+                    app_pid = -1
+                if app_pid == pid:
+                    # Return first window of matching app
+                    if app.get_child_count() > 0:
+                        win = app.get_child_at_index(0)
+                        if win is not None:
+                            return app, win
+            except Exception:
+                continue
+
     return None, None
 
 
@@ -49,6 +86,8 @@ def _get_extents(node):
         if component is None:
             return None
         ext = component.get_extents(Atspi.CoordType.SCREEN)
+        if ext.width <= 0 and ext.height <= 0:
+            return None
         return {
             "left": ext.x,
             "top": ext.y,
@@ -59,18 +98,27 @@ def _get_extents(node):
         return None
 
 
-def _get_pid_from_xdotool():
-    """Fallback: get active window PID via xdotool."""
-    try:
-        wid = subprocess.check_output(
-            ["xdotool", "getactivewindow"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        pid_str = subprocess.check_output(
-            ["xdotool", "getwindowpid", wid], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        return int(pid_str)
-    except Exception:
-        return None
+def _get_deepest_at_point(node, x, y):
+    """Recursively find the deepest accessible element at (x, y).
+
+    AT-SPI's get_accessible_at_point only returns a direct child,
+    so we must drill down repeatedly to find the leaf element.
+    """
+    component = node.get_component_iface()
+    if component is None:
+        return node
+
+    current = node
+    for _ in range(MAX_DEPTH):
+        comp = current.get_component_iface()
+        if comp is None:
+            break
+        child = comp.get_accessible_at_point(x, y, Atspi.CoordType.SCREEN)
+        if child is None or child == current:
+            break
+        current = child
+
+    return current
 
 
 # ── public API (matches _windows.py interface) ────────────────────────
@@ -138,7 +186,6 @@ def get_active_window_state(read_window_data: bool = True) -> dict:
     width = (ext["right"] - ext["left"]) if ext else 0
     height = (ext["bottom"] - ext["top"]) if ext else 0
 
-    # Generate a stable window_id from the accessible object
     try:
         pid = app.get_process_id() if app else 0
     except Exception:
@@ -236,20 +283,35 @@ def get_accessibility_tree():
 
 
 def get_active_element_state(x, y):
-    """Get the a11y tree of the element at the given coordinates."""
+    """Get the a11y tree of the element at the given coordinates.
+
+    Finds the deepest element at (x,y) by recursively drilling down,
+    then builds a subtree from that element to provide context for scoring.
+    Also traverses upward to include the parent chain for better matching.
+    """
     try:
         app, win = _find_active_window()
         if win is None:
             return {}
 
-        # Try to find the specific element at (x, y)
-        component = win.get_component_iface()
-        if component is not None:
-            element = component.get_accessible_at_point(
-                x, y, Atspi.CoordType.SCREEN
-            )
-            if element is not None:
-                return traverse_accessible(element)
+        # Find the deepest element at (x, y)
+        deepest = _get_deepest_at_point(win, x, y)
+
+        # Build a subtree: walk up a few levels to get context,
+        # then traverse down from there
+        context_node = deepest
+        for _ in range(3):
+            try:
+                parent = context_node.get_parent()
+                if parent is None or parent.get_role() == Atspi.Role.DESKTOP_FRAME:
+                    break
+                context_node = parent
+            except Exception:
+                break
+
+        tree = traverse_accessible(context_node)
+        if tree and (tree.get("Name") or tree.get("Children")):
+            return tree
 
         # Fallback: return the whole window tree
         return traverse_accessible(win)
@@ -262,6 +324,8 @@ def get_active_element_state(x, y):
 def parse_element(element, x: float, y: float):
     """Score the element tree and find the best matching node."""
     try:
+        if not element or not isinstance(element, dict):
+            return None
         describer = LinuxElementDescriber(x, y)
         describer = describer.build_from_json(element)
         describer.calculate_score()
