@@ -132,7 +132,16 @@ if "!NODE_OK!"=="0" (
 echo:
 
 :: ==========================================
-:: 3. Create / reuse conda environment
+:: 3. Accept conda Terms of Service
+:: ==========================================
+
+echo Accepting conda channel Terms of Service...
+"!CONDA_EXE!" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main >nul 2>&1
+"!CONDA_EXE!" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r >nul 2>&1
+"!CONDA_EXE!" tos accept --override-channels --channel https://repo.anaconda.com/pkgs/msys2 >nul 2>&1
+
+:: ==========================================
+:: 4. Create / reuse conda environment
 :: ==========================================
 
 "!CONDA_EXE!" env list > "%TEMP%\conda_envs.txt" 2>&1
@@ -151,7 +160,7 @@ if not errorlevel 1 (
 )
 del "%TEMP%\conda_envs.txt" >nul 2>&1
 
-:: Activate the environment (this one needs the batch wrapper)
+:: Activate the environment
 echo Activating conda environment 'agentnet'...
 
 :: Ensure conda shell hooks are initialized first
@@ -171,7 +180,7 @@ echo [OK] Environment activated. Python:
 python --version
 
 :: ==========================================
-:: 4. Install Python dependencies
+:: 5. Install Python dependencies
 :: ==========================================
 
 echo:
@@ -188,7 +197,7 @@ if errorlevel 1 (
 echo [OK] Python dependencies installed.
 
 :: ==========================================
-:: 5. Install Node.js dependencies
+:: 6. Install Node.js dependencies
 :: ==========================================
 
 echo:
@@ -205,7 +214,7 @@ cd "%SCRIPT_DIR%"
 echo [OK] Node.js dependencies installed.
 
 :: ==========================================
-:: 6. Check/create libs directory for DLLs
+:: 7. Check/create libs directory for DLLs
 :: ==========================================
 
 echo:
@@ -218,7 +227,7 @@ if not exist "%SCRIPT_DIR%agentnet-annotator\api\libs" (
 )
 
 :: ==========================================
-:: 7. Create .env from .env.example if needed
+:: 8. Create .env from .env.example if needed
 :: ==========================================
 
 echo:
