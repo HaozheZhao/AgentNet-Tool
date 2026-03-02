@@ -1145,7 +1145,7 @@ const Page = () => {
         }
     };
 
-    const handleSaveAnnotatorInfo = () => {
+    const handleSaveAnnotatorInfo = async () => {
         if (!annotatorUsername.trim()) {
             showError("Username is required");
             return;
@@ -1160,7 +1160,28 @@ const Page = () => {
         }
         localStorage.setItem("annotator_username", annotatorUsername.trim());
         localStorage.setItem("oss_upload_folder", uploadFolder.trim());
-        setTaskName(`${annotatorUsername.trim()}_${annotatorTaskId.trim()}`);
+
+        // Save task name to backend with auto-numbering
+        const baseName = `${annotatorUsername.trim()}_${annotatorTaskId.trim()}`;
+        try {
+            const response = await fetch(
+                `http://localhost:5328/api/recording/${recordingName}/save_task_name`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ base_name: baseName }),
+                }
+            );
+            const result = await response.json();
+            if (response.ok && result.task_name) {
+                setTaskName(result.task_name);
+                setCutTaskName(result.task_name);
+            } else {
+                setTaskName(baseName);
+            }
+        } catch (e) {
+            setTaskName(baseName);
+        }
         setAnnotatorInfoLocked(true);
     };
 

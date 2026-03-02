@@ -80,6 +80,21 @@ class RecordingController:
         return ErrorHandler.handle_service_response((status, message))
 
     @handle_api_errors
+    def save_task_name(self, recording_name: str) -> Tuple[Dict[str, Any], int]:
+        """Save task name with auto-incrementing number suffix."""
+        Validator.validate_recording_name(recording_name)
+
+        if not request.json:
+            return ErrorHandler.create_error_response("No data provided", 400)
+
+        base_name = request.json.get("base_name", "")
+        if not base_name:
+            return ErrorHandler.create_error_response("base_name is required", 400)
+
+        status, data = self.recording_service.save_task_name(recording_name, base_name)
+        return ErrorHandler.handle_service_response((status, data))
+
+    @handle_api_errors
     def get_hub_data(self, recording_name: str) -> Tuple[Dict[str, Any], int]:
         """Get hub data for a recording."""
         Validator.validate_recording_name(recording_name)

@@ -87,6 +87,7 @@ class AgentNetBackend:
             ("/api/fullvideo/<recording_name>", self.recording_controller.get_full_video_endpoint),
             # Recording Operations
             ("/api/recording/<recording_name>/confirm", self.recording_controller.confirm_recording, {"methods": ["POST"]}),
+            ("/api/recording/<recording_name>/save_task_name", self.recording_controller.save_task_name, {"methods": ["POST"]}),
             ("/api/recording/<recording_name>/hub_data", self.recording_controller.get_hub_data),
             ("/api/recording/<recording_name>/cut", self.recording_controller.annotate_task_endpoint, {"methods": ["POST"]}),
             # Local Operations

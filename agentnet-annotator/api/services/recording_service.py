@@ -170,6 +170,72 @@ class RecordingService:
             logger.exception(f"RecordingService: get_single_recording failed: {e}")
             return FAILED, {"error": "Failed to load recording"}
 
+    def save_task_name(
+        self, recording_name: str, base_name: str
+    ) -> Tuple[str, dict]:
+        """Save task name for a recording with auto-incrementing number suffix.
+
+        Scans all existing recordings for task names with the same base_name
+        prefix and assigns the next available number (e.g., _000, _001, _002).
+        If the recording already has a numbered task name with the same base,
+        keep the existing number.
+        """
+        try:
+            folder_path = os.path.join(RECORDING_DIR, recording_name)
+            if not os.path.exists(folder_path):
+                return FAILED, {"error": "Recording not found"}
+
+            # Check if this recording already has a task name with this base
+            task_name_path = os.path.join(folder_path, "task_name.json")
+            if os.path.exists(task_name_path):
+                existing = read_encrypted_json(task_name_path)
+                existing_name = existing.get("task_name", "")
+                # If already named with same base + number suffix, keep it
+                if existing_name.startswith(base_name + "_") and len(existing_name) == len(base_name) + 4:
+                    suffix = existing_name[len(base_name) + 1:]
+                    if suffix.isdigit() and len(suffix) == 3:
+                        return SUCCEED, {"task_name": existing_name}
+
+            # Find all existing task names with the same base_name prefix
+            existing_numbers = set()
+            if os.path.exists(RECORDING_DIR):
+                for rec_dir in os.listdir(RECORDING_DIR):
+                    rec_path = os.path.join(RECORDING_DIR, rec_dir, "task_name.json")
+                    if os.path.exists(rec_path):
+                        try:
+                            data = read_encrypted_json(rec_path)
+                            name = data.get("task_name", "")
+                            # Check if name matches pattern: base_name_NNN
+                            if name.startswith(base_name + "_") and len(name) == len(base_name) + 4:
+                                suffix = name[len(base_name) + 1:]
+                                if suffix.isdigit() and len(suffix) == 3:
+                                    existing_numbers.add(int(suffix))
+                        except Exception:
+                            continue
+
+            # Find next available number
+            next_num = 0
+            while next_num in existing_numbers:
+                next_num += 1
+
+            task_name = f"{base_name}_{next_num:03d}"
+
+            write_encrypted_json(
+                task_name_path,
+                {"task_name": task_name, "description": ""},
+            )
+
+            # Update cached recording info
+            if self.user_recordings and recording_name in self.user_recordings:
+                self.user_recordings[recording_name]["task_name"] = task_name
+
+            logger.info(f"RecordingService: saved task name '{task_name}' for {recording_name}")
+            return SUCCEED, {"task_name": task_name}
+
+        except Exception as e:
+            logger.exception("RecordingService: save_task_name failed")
+            return FAILED, {"error": str(e)}
+
     def confirm_recording(
         self, recording_name: str, events_data: list, knowledge_points: list = None
     ) -> Tuple[str, str]:
