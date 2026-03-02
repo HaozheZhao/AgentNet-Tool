@@ -129,9 +129,9 @@ conda activate agentnet
 
 echo ""
 echo "Installing system packages for AT-SPI accessibility support..."
-sudo apt-get install -y gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core 2>/dev/null || {
+sudo apt-get install -y gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core libcairo2-dev 2>/dev/null || {
     echo -e "${YELLOW}Could not install AT-SPI packages automatically."
-    echo -e "Please run: sudo apt-get install gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core${NC}"
+    echo -e "Please run: sudo apt-get install gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core libcairo2-dev${NC}"
 }
 
 # ==========================================
