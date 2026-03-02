@@ -27,11 +27,22 @@ def upload_recording(recording_name, annotator_info=None):
         timestamp = get_hk_time()
         recording_path = os.path.join(RECORDING_DIR, recording_name)
 
+        task_name = ""
         path = os.path.join(RECORDING_DIR, recording_name, "task_name.json")
-        task_name=""
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            task_name=data['task_name']
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                task_name = data.get("task_name", "")
+        if not task_name and annotator_info:
+            # Build task name from annotator info (matches Local page auto-generation)
+            uname = annotator_info.get("username", "").strip()
+            tid = annotator_info.get("task_id", "").strip()
+            if uname and tid:
+                task_name = f"{uname}_{tid}"
+            elif uname:
+                task_name = uname
+        if not task_name:
+            task_name = recording_name
 
         upload_folder = annotator_info.get("upload_folder", "recordings_new") if annotator_info else "recordings_new"
 
