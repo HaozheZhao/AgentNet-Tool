@@ -55,11 +55,11 @@ class ObsService:
                 monitor = monitors[0]
                 screen_w, screen_h = monitor.width, monitor.height
                 if screen_w != REQUIRED_WIDTH or screen_h != REQUIRED_HEIGHT:
-                    warnings.append(
+                    return FAILED, (
                         f"Screen resolution is {screen_w}x{screen_h}, but annotation "
                         f"requires {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}. Please change "
                         f"your display resolution before recording."
-                    )
+                    ), warnings
             else:
                 warnings.append("Could not detect any monitors.")
         except Exception as e:
@@ -77,11 +77,11 @@ class ObsService:
                 obs_out_w = video_settings.output_width
                 obs_out_h = video_settings.output_height
                 if obs_out_w != REQUIRED_WIDTH or obs_out_h != REQUIRED_HEIGHT:
-                    warnings.append(
+                    return FAILED, (
                         f"OBS output resolution is {obs_out_w}x{obs_out_h}, but annotation "
                         f"requires {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}. Please change "
                         f"OBS output resolution in Settings > Video > Output (Scaled) Resolution."
-                    )
+                    ), warnings
             except Exception as e:
                 warnings.append(f"Could not check OBS output resolution: {str(e)}")
 

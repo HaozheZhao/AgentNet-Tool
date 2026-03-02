@@ -59,6 +59,7 @@ import Check from "@mui/icons-material/Check";
 import { default as _ReactPlayer } from "react-player/lazy";
 import { ReactPlayerProps } from "react-player/types/lib";
 import ClearIcon from "@mui/icons-material/Clear";
+import CloseIcon from "@mui/icons-material/Close";
 import { useMain } from "../../context/MainContext";
 import "react-edit-text/dist/index.css";
 import EditableText from "../utils/EditableTextArea";
@@ -295,6 +296,8 @@ const Page = () => {
     const [operationHistory, setOperationHistory] = useState<any[]>([]); // Stack for undo operations
     const [redoStack, setRedoStack] = useState<any[]>([]); // Stack for redo operations (optional)
     const [dirty, setIsDirty] = useState(false);
+    const [knowledgePoints, setKnowledgePoints] = useState<string[]>([]);
+    const [knowledgeInput, setKnowledgeInput] = useState("");
 
     // Annotator info state
     const [annotatorUsername, setAnnotatorUsername] = useState(() => {
@@ -360,6 +363,9 @@ const Page = () => {
         setActiveStep(0);
         setCutTaskName("");
         setCutDescription("");
+        if (recordingData.task_data.knowledge_points) {
+            setKnowledgePoints(recordingData.task_data.knowledge_points);
+        }
         // Reset annotator task-specific fields when recording changes
         setAnnotatorTaskId("");
         setAnnotatorQuery("");
@@ -734,6 +740,20 @@ const Page = () => {
         setIsDirty(false);
         blocker.proceed();
     };
+    const handleAddKnowledgePoint = () => {
+        const trimmed = knowledgeInput.trim();
+        if (trimmed && !knowledgePoints.includes(trimmed)) {
+            setKnowledgePoints([...knowledgePoints, trimmed]);
+            setKnowledgeInput("");
+            setIsDirty(true);
+        }
+    };
+
+    const handleDeleteKnowledgePoint = (index: number) => {
+        setKnowledgePoints(knowledgePoints.filter((_, i) => i !== index));
+        setIsDirty(true);
+    };
+
     const handleConfirmRecording = async () => {
         const confirmResponse = await fetch(
             `http://localhost:5328/api/recording/${recordingName}/confirm`,
@@ -742,7 +762,10 @@ const Page = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(eventsList),
+                body: JSON.stringify({
+                    events: eventsList,
+                    knowledge_points: knowledgePoints,
+                }),
             }
         );
         const confirmResult = await confirmResponse.json();
@@ -772,7 +795,10 @@ const Page = () => {
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify(eventsList),
+                body: JSON.stringify({
+                    events: eventsList,
+                    knowledge_points: knowledgePoints,
+                }),
             }
         );
         const confirmResult = await confirmResponse.json();
@@ -1006,7 +1032,10 @@ const Page = () => {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify(eventsList),
+                    body: JSON.stringify({
+                    events: eventsList,
+                    knowledge_points: knowledgePoints,
+                }),
                 }
             );
             const confirmResult = await confirmResponse.json();
@@ -2052,6 +2081,32 @@ const Page = () => {
                     </div>
                 </div>
             </div>
+            <Card variant="outlined" sx={{ mt: 2, mx: 2, p: 2 }}>
+                <Typography level="title-md" sx={{ mb: 1 }}>Knowledge Points</Typography>
+                <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+                    <Input
+                        placeholder="Enter a knowledge point..."
+                        value={knowledgeInput}
+                        onChange={(e) => setKnowledgeInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") handleAddKnowledgePoint(); }}
+                        sx={{ flex: 1 }}
+                    />
+                    <Button onClick={handleAddKnowledgePoint} size="sm">Add</Button>
+                </Box>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                    {knowledgePoints.map((kp, i) => (
+                        <Chip
+                            key={i}
+                            variant="soft"
+                            color="primary"
+                            endDecorator={<CloseIcon fontSize="small" />}
+                            onClick={() => handleDeleteKnowledgePoint(i)}
+                        >
+                            {kp}
+                        </Chip>
+                    ))}
+                </Box>
+            </Card>
             <Snackbar
                 open={isUploading}
                 anchorOrigin={{ vertical: "top", horizontal: "center" }}

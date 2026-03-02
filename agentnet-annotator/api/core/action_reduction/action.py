@@ -362,10 +362,11 @@ class Type(Action):
         self.resolved_text = None
         self.has_editing = False
         self.raw_keys = None
+        self.raw_text = None
         self.vis_dump_attrs = [
             "id", "action", "description", "justification",
             "start_time", "end_time", "time_stamp", "depth",
-            "resolved_text", "raw_keys",
+            "resolved_text", "raw_keys", "raw_text",
         ]
 
     def append(self, event):
@@ -388,6 +389,28 @@ class Type(Action):
         Handles backspace deletions, arrow key cursor movement, etc.
         Produces both plain resolved_text and formatted resolved_description
         with $key$ markers for functional keys."""
+        # Build raw_text: just the raw keystroke sequence, no editing applied
+        raw_parts = []
+        for key in self.key_names:
+            k = key.lower() if len(key) > 1 else key
+            if k == 'space':
+                raw_parts.append(' ')
+            elif k in ('enter', 'return'):
+                raw_parts.append('\n')
+            elif k == 'tab':
+                raw_parts.append('\t')
+            elif k == 'backspace':
+                raw_parts.append('[BS]')
+            elif k in ('delete', 'del'):
+                raw_parts.append('[DEL]')
+            elif k in ('left', 'right', 'up', 'down', 'home', 'end'):
+                raw_parts.append(f'[{k}]')
+            elif k in FUNCTIONAL_KEYS:
+                pass  # skip non-text functional keys
+            else:
+                raw_parts.append(key)
+        self.raw_text = ''.join(raw_parts)
+
         buffer = []  # list of items: str (character) or tuple ('key', name)
         cursor = 0
         has_editing = False
