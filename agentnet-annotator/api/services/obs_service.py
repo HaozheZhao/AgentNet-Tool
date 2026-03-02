@@ -1,12 +1,15 @@
 """OBS service for handling OBS integration."""
 
 import time
-from typing import Tuple
+from typing import List, Tuple
 
 from core.logger import logger
 from core.obs_client import close_obs, is_obs_running, open_obs
 from core.constants import SUCCEED, FAILED
 from scripts.obs_config import enable_obs_websocket
+
+REQUIRED_WIDTH = 1920
+REQUIRED_HEIGHT = 1080
 
 
 class ObsService:
@@ -35,6 +38,46 @@ class ObsService:
 
         logger.warning("ObsService: Failed to start OBS")
         return FAILED, "Failed to start OBS"
+
+    def check_recording_prerequisites(self) -> Tuple[str, str, List[str]]:
+        """Check resolution and OBS connection before recording.
+
+        Returns:
+            Tuple of (status, message, warnings_list)
+        """
+        warnings = []
+
+        # 1. Check screen resolution
+        try:
+            from screeninfo import get_monitors
+            monitors = get_monitors()
+            if monitors:
+                monitor = monitors[0]
+                screen_w, screen_h = monitor.width, monitor.height
+                if screen_w != REQUIRED_WIDTH or screen_h != REQUIRED_HEIGHT:
+                    warnings.append(
+                        f"Screen resolution is {screen_w}x{screen_h}, but annotation "
+                        f"requires {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}. Please change "
+                        f"your display resolution before recording."
+                    )
+            else:
+                warnings.append("Could not detect any monitors.")
+        except Exception as e:
+            warnings.append(f"Could not detect screen resolution: {str(e)}")
+
+        # 2. Check OBS WebSocket connection
+        try:
+            import obsws_python as obs_ws
+            test_client = obs_ws.ReqClient()
+            test_client.get_version()
+            try:
+                test_client.base_client.ws.close()
+            except Exception:
+                pass
+        except Exception as e:
+            return FAILED, f"Cannot connect to OBS WebSocket: {str(e)}", warnings
+
+        return SUCCEED, "Prerequisites check passed", warnings
 
     def enable_websocket(self) -> Tuple[str, str]:
         """Enable OBS WebSocket."""

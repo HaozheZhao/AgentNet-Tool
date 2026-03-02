@@ -466,11 +466,15 @@ def cut_video(
             ffmpeg_path = Path(sys._MEIPASS) / "ffmpeg" / "ffmpeg"
         elif system() == "Windows":
             ffmpeg_path = Path(sys._MEIPASS) / "ffmpeg" / "ffmpeg.exe"
+        elif system() == "Linux":
+            ffmpeg_path = "ffmpeg"
     else:
         if system() == "Darwin":
             ffmpeg_path = "ffmpeg"
         elif system() == "Windows":
             ffmpeg_path = Path(__file__).parent.parent / "ffmpeg.exe"
+        elif system() == "Linux":
+            ffmpeg_path = "ffmpeg"
     if system() == "Darwin":
         command = f"{ffmpeg_path} -ss {start_time} -to {end_time} -i {old_video_path} -c copy {output_file_path}"
     else:
@@ -510,7 +514,7 @@ def get_key_name(key):
             return VK_CODE.get(key.vk, f"$Unknown ({key.vk})$")
         else:
             if ord(key.char) < 32:
-                return chr(ord(key.char) + 64)
+                return chr(ord(key.char) + 64).lower()
             else:
                 return key.char
     elif isinstance(key, Key):

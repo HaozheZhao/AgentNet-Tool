@@ -38,6 +38,14 @@ class WebSocketController:
             emit("start_record", {"status": FAILED, "message": message})
             return
 
+        # Check recording prerequisites (resolution, OBS WebSocket)
+        status, message, warnings = self.obs_service.check_recording_prerequisites()
+        for warning in warnings:
+            emit("recording_warning", {"message": warning})
+        if status == FAILED:
+            emit("start_record", {"status": FAILED, "message": message})
+            return
+
         try:
             # Extract task hub data
             task_hub_data = data.get("task_hub_data", {}) if data else {}

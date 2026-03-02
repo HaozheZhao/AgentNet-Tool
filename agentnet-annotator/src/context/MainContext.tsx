@@ -228,6 +228,10 @@ export const MainProvider: React.FC<{ children: ReactNode }> = ({
                 fetchTasks();
             }, 1500);
         });
+        SocketService.Listen("recording_warning", (response) => {
+            console.warn("Recording warning:", response.message);
+            showError(response.message);
+        });
         fetchOS();
         
         // Fetch tasks on startup

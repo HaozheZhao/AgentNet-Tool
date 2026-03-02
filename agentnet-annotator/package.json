@@ -5,7 +5,7 @@
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
-    "prestart": "lsof -ti:5328 | xargs -I {} kill -9 {} >/dev/null 2>&1 || true",
+    "prestart": "node scripts/kill-port.js",
     "start": "cross-env FLASK_DEBUG=1 electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",

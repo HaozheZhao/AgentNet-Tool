@@ -17,7 +17,26 @@ def get_obs_websocket_config_path():
 
 def enable_obs_websocket():
     if os.name == 'nt':  # Windows
-        pass
+        config_path = os.path.expandvars(r'%APPDATA%\obs-studio\plugin_config\obs-websocket')
+
+        # Create directory if it doesn't exist
+        if not os.path.exists(config_path):
+            os.makedirs(config_path, exist_ok=True)
+            print(f"Created config directory: {config_path}")
+
+        config = {
+            "alerts_enabled": False,
+            "auth_required": False,
+            "first_load": False,
+            "server_enabled": True,
+            "server_password": "",
+            "server_port": 4455
+        }
+        config_file = os.path.join(config_path, 'config.json')
+        with open(config_file, 'w') as file:
+            json.dump(config, file)
+
+        print(f"OBS WebSocket server has been enabled in {config_file}")
     elif platform.system() in ('Darwin', 'Linux'):
         # macOS/Linux
         config_path = get_obs_websocket_config_path()

@@ -1520,6 +1520,20 @@ const ReviewPage = () => {
                                                         />
                                                     )}
 
+                                                    {/* Resolved Text Display */}
+                                                    {event.resolved_text && (
+                                                        <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, alignItems: 'baseline' }}>
+                                                            <span className="text-xs font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                                                                Resolved:
+                                                            </span>
+                                                            <div style={{ overflow: 'auto', maxWidth: '100%', whiteSpace: 'nowrap' }}>
+                                                                <span className="text-xs text-slate-700 dark:text-slate-300">
+                                                                    {event.resolved_text}
+                                                                </span>
+                                                            </div>
+                                                        </Box>
+                                                    )}
+
                                                     {/* Justification Section */}
                                                     {index === activeStep && (
                                                         <Box

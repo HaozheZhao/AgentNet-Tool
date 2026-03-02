@@ -234,6 +234,7 @@ export interface eventProp {
     element_text: string | null;
     axtree: Record<string, any> | null;
     justification: string | null; //annotator's justification for why this action is necessary
+    resolved_text: string | null; //resolved text after backspace/arrow corrections
 }
 
 interface statusProp {

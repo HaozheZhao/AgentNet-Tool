@@ -203,7 +203,7 @@ class Recorder(QThread):
                     logger.info("write_element_data")
                     write_encrypt_line(self.element_file, element_queue.get())
 
-            if system() != "Linux":
+            if system() != "Linux" and hasattr(self, 'a11y_listener'):
                 top_window_queue = self.a11y_listener.top_window_queue
                 if not top_window_queue.empty():
                     write_encrypt_line(self.top_window_file,
@@ -259,7 +259,7 @@ class Recorder(QThread):
                 )
                 element_writer_thread.start()
 
-            if system() != "Linux":
+            if system() != "Linux" and hasattr(self, 'a11y_listener'):
                 top_window_writer_thread = Thread(
                     target=self.write_top_window_data,
                     args=(self.a11y_listener, self.top_window_file),
@@ -271,7 +271,7 @@ class Recorder(QThread):
                 a11y_writer_thread.join()
             if self.gen_element and system() != "Linux":
                 element_writer_thread.join()
-            if system() != "Linux":
+            if system() != "Linux" and hasattr(self, 'a11y_listener'):
                 top_window_writer_thread.join()
             self.obs_client.stop_recording()
 

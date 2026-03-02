@@ -98,8 +98,8 @@ class OBSClient:
         recording_path: str, 
         metadata: dict, 
         fps=30,
-        output_width=1280, 
-        output_height=720, 
+        output_width=1920,
+        output_height=1080,
         output_filename: str = "video.mp4",
     ):
         self.metadata = metadata

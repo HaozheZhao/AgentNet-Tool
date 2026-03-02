@@ -30,8 +30,10 @@ FUNCTIONAL_KEYS = {
     'lang1', 'lang2', 'attn', 'crsel', 'exsel', 'ereof', 'play', 'zoom', 'pa1', 'oem_clear',
     'audio_mute', 'audio_vol_down', 'audio_vol_up', 'audio_play', 'audio_stop', 'audio_pause', 'audio_prev','audio_next',
     'brightness_down', 'brightness_up', 'abnt_c1', 'abnt_c2', 'ax', 'numpad_comma', 'eject'
-    } 
-    
+    }
+
+TYPING_MERGE_THRESHOLD = 2.0  # max seconds between keystrokes to merge Type actions
+
 
 def wrap_func_key(key: str):
     if key in MODIFIED_KEYS:

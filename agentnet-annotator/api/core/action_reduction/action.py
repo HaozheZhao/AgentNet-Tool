@@ -13,13 +13,13 @@ if __name__ == "__main__":
     parent_dir = os.path.abspath(os.path.join(current_dir, "../../"))
     sys.path.append(parent_dir)
     from api.core.action_reduction.reduction_helper import (
-        MODIFIED_KEYS, MOUSE_LONG_PRESS_INTERVAL,
+        MODIFIED_KEYS, FUNCTIONAL_KEYS, MOUSE_LONG_PRESS_INTERVAL,
         wrap_func_key,
     )
     from api.core.logger import logger
 else:
     from .reduction_helper import (
-        MODIFIED_KEYS, MOUSE_LONG_PRESS_INTERVAL,
+        MODIFIED_KEYS, FUNCTIONAL_KEYS, MOUSE_LONG_PRESS_INTERVAL,
         wrap_func_key,
     )
     from ..logger import logger
@@ -349,16 +349,23 @@ class Type(Action):
         if event["action"] == "type":
             self.action = event["action"]
             self.key_names = event["key_names"]
-            
+
         elif event["action"] == "press":
             self.action = "type"
             self.key_names = [event["name"]]
-            
+
         self.time_trace = [event["time_stamp"]]
         self.end_time = self.time_trace[-1] + 0.2
-        
+
         self.action_start_video_buffer_time = 0.5
         self.action_end_video_buffer_time = 0.2
+        self.resolved_text = None
+        self.has_editing = False
+        self.vis_dump_attrs = [
+            "id", "action", "description", "justification",
+            "start_time", "end_time", "time_stamp", "depth",
+            "resolved_text",
+        ]
 
     def append(self, event):
         if isinstance(event, dict):
@@ -375,11 +382,73 @@ class Type(Action):
         self.time_trace.extend(action.time_trace)
         self.end_time = self.time_trace[-1] + 0.2
 
+    def resolve_text(self):
+        """Simulate text buffer with cursor to resolve final intended text.
+        Handles backspace deletions, arrow key cursor movement, etc."""
+        buffer = []
+        cursor = 0
+        has_editing = False
+
+        for key in self.key_names:
+            k = key.lower() if len(key) > 1 else key
+            if k == 'backspace':
+                has_editing = True
+                if cursor > 0:
+                    buffer.pop(cursor - 1)
+                    cursor -= 1
+            elif k in ('delete', 'del'):
+                has_editing = True
+                if cursor < len(buffer):
+                    buffer.pop(cursor)
+            elif k == 'left':
+                has_editing = True
+                cursor = max(0, cursor - 1)
+            elif k == 'right':
+                has_editing = True
+                cursor = min(len(buffer), cursor + 1)
+            elif k == 'home':
+                has_editing = True
+                cursor = 0
+            elif k == 'end':
+                has_editing = True
+                cursor = len(buffer)
+            elif k == 'space':
+                buffer.insert(cursor, ' ')
+                cursor += 1
+            elif k in ('enter', 'return'):
+                buffer.insert(cursor, '\n')
+                cursor += 1
+            elif k == 'tab':
+                buffer.insert(cursor, '\t')
+                cursor += 1
+            elif k in FUNCTIONAL_KEYS:
+                pass  # ignore non-text functional keys (caps, f-keys, etc.)
+            else:
+                # Regular character
+                buffer.insert(cursor, key)
+                cursor += 1
+
+        self.resolved_text = ''.join(buffer)
+        self.has_editing = has_editing
+        return self.resolved_text
+
     def transform(self):
         super().transform()
-        self.description = "⌨️ Type: "
+        self.resolve_text()
+
+        # Build raw key description
+        raw_desc = ""
         for key in self.key_names:
-            self.description += wrap_func_key(key)
+            raw_desc += wrap_func_key(key)
+
+        # Use resolved text in description if editing occurred
+        if self.has_editing and self.resolved_text:
+            self.description = "⌨️ Type: {} (raw: {})".format(
+                self.resolved_text, raw_desc
+            )
+        else:
+            self.description = "⌨️ Type: {}".format(raw_desc)
+
         logger.error("transform {}".format(self.key_names))
 
     def process_video_segment(
@@ -734,8 +803,8 @@ class Press(Action):  # type, press, long press
         if (
             self.complete
             and self.children is not None
-            and len(self.children) == 1
-            and isinstance(self.children[0], Type)
+            and len(self.children) >= 1
+            and all(isinstance(child, Type) for child in self.children)
             and "shift" in self.key_name
         ):
             return True
@@ -792,6 +861,17 @@ class Press(Action):  # type, press, long press
                 self.description = "⌨️ Long Press: {}".format(
                     wrap_func_key(self.key_name)
                 )
+        elif self.is_typing():
+            # Multiple Type children under shift - merge them into one
+            merged = self.children[0]
+            for i in range(1, len(self.children)):
+                if isinstance(self.children[i], Type):
+                    merged.extend(self.children[i])
+            self.children = [merged]
+            self.description = "⌨️ Press: {} + {}".format(
+                wrap_func_key(self.key_name), merged.get_str()
+            )
+            merged.vis = False
         else:
             self.action = "long_press"
             self.description = "⌨️ Long Press: {}".format(

@@ -236,11 +236,13 @@ class Reducer:
         cur_event["end_time"] = cur_event["time_stamp"]
         key = (cur_event["key"][0], not cur_event["key"][1])
         if cur_event["name"] not in MODIFIED_KEYS:
-            # TODO: handle not found or overlap
+            # Case-insensitive key matching to handle ctrl+char name changes between press/release
             for i in range(len(self.event_buffer) - 1, -1, -1):
-                if self.event_buffer[i]["key"] == key and not self.event_buffer[i].get(
-                    "end_time"
-                ):
+                buf_key = self.event_buffer[i]["key"]
+                if (buf_key[0][0] == key[0][0] and
+                    buf_key[0][1].lower() == key[0][1].lower() and
+                    buf_key[1] == key[1] and
+                    not self.event_buffer[i].get("end_time")):
                     self.event_buffer[i]["end_time"] = cur_event["time_stamp"]
                     return
             logger.warning(
@@ -255,12 +257,13 @@ class Reducer:
             if key in self.active_events:
                 self.active_events.remove(key)
 
-            # TODO: handle not found or overlap
+            # Case-insensitive key matching for modifier key release
             for i in range(len(self.event_buffer) - 1, -1, -1):
-                if (
-                    self.event_buffer[i]["key"] == key
-                    and self.event_buffer[i]["matched"] is None
-                ):
+                buf_key = self.event_buffer[i]["key"]
+                if (buf_key[0][0] == key[0][0] and
+                    buf_key[0][1].lower() == key[0][1].lower() and
+                    buf_key[1] == key[1] and
+                    self.event_buffer[i].get("matched") is None):
                     self.event_buffer[i]["end_time"] = cur_event["time_stamp"]
                     self.event_buffer[i]["end_idx"] = len(self.event_buffer)
                     self.event_buffer[i]["matched"] = len(self.event_buffer)
@@ -536,6 +539,20 @@ class Reducer:
                     return i
         return None
 
+    def _find_next_type_action(self, start_idx):
+        """Find next Type action, skipping non-blocking actions (move, scroll)."""
+        for i in range(start_idx, len(self.reduced_actions)):
+            action = self.reduced_actions[i]
+            if action.action == "type":
+                return i
+            elif action.action in ("move", "scroll"):
+                continue
+            elif action.action == "press" and action.is_typing():
+                return i
+            else:
+                return None
+        return None
+
     def _find_last_close_complete_identical_click(self, click_action, idx):
         if idx == 1:
             return None
@@ -584,36 +601,29 @@ class Reducer:
             if temp_action.action == "type":
                 # if not last action (last action could be extended by new actions)
                 if self.complete_idx + 1 < len(self.reduced_actions):
-                    if self.reduced_actions[self.complete_idx + 1].action == "type":
-                        logger.warning(
-                            "here {} {} {}".format(
-                                self.complete_idx,
-                                self.reduced_actions[self.complete_idx].key,
-                                self.reduced_actions[self.complete_idx + 1].key,
-                            )
-                        )
-                        temp_action.extend(self.reduced_actions[self.complete_idx + 1])
-                        self.reduced_actions.pop(self.complete_idx + 1)
-                        temp_action.transform()
-                        continue
-                    elif (
-                        self.reduced_actions[self.complete_idx + 1].action == "press"
-                        and self.reduced_actions[self.complete_idx + 1].is_typing()
-                        and self.complete_idx < len(self.reduced_actions) - 1
-                    ):
-                        logger.warning(
-                            "there {} {} {}".format(
-                                self.complete_idx,
-                                self.reduced_actions[self.complete_idx].key,
-                                self.reduced_actions[self.complete_idx + 1].key,
-                            )
-                        )
-                        temp_action.extend(
-                            self.reduced_actions[self.complete_idx + 1].children[0]
-                        )
-                        self.reduced_actions.pop(self.complete_idx + 1)
-                        temp_action.transform()
-                        continue
+                    # Look ahead for next Type action, skipping non-blocking actions
+                    next_type_idx = self._find_next_type_action(self.complete_idx + 1)
+
+                    if next_type_idx is not None:
+                        next_action = self.reduced_actions[next_type_idx]
+                        time_gap = next_action.start_time - temp_action.end_time
+
+                        if time_gap < TYPING_MERGE_THRESHOLD:
+                            # Merge the next Type action into current
+                            if next_action.action == "type":
+                                temp_action.extend(next_action)
+                            elif next_action.action == "press" and next_action.is_typing():
+                                # Merge all Type children from shift+type Press
+                                for child in next_action.children:
+                                    if isinstance(child, Type):
+                                        temp_action.extend(child)
+
+                            # Remove merged action and any non-blocking actions between
+                            for rm_idx in range(next_type_idx, self.complete_idx, -1):
+                                self.reduced_actions.pop(rm_idx)
+
+                            temp_action.transform()
+                            continue
 
                     temp_action.transform()
 
