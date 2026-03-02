@@ -1160,6 +1160,7 @@ const Page = () => {
         }
         localStorage.setItem("annotator_username", annotatorUsername.trim());
         localStorage.setItem("oss_upload_folder", uploadFolder.trim());
+        setTaskName(`${annotatorUsername.trim()}_${annotatorTaskId.trim()}`);
         setAnnotatorInfoLocked(true);
     };
 
