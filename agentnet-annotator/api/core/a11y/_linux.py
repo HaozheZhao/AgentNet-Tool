@@ -219,11 +219,29 @@ def traverse_accessible(node, depth=0):
     except Exception:
         role_name = ""
 
+    try:
+        description = node.get_description() or ""
+    except Exception:
+        description = ""
+
+    # Try to get text value for text elements
+    value = ""
+    try:
+        text_iface = node.get_text_iface()
+        if text_iface is not None:
+            char_count = text_iface.get_character_count()
+            if 0 < char_count <= 200:
+                value = text_iface.get_text(0, char_count) or ""
+    except Exception:
+        pass
+
     ext = _get_extents(node)
 
     tree = {
         "Name": name,
         "ControlType": role_name,
+        "Description": description,
+        "Value": value,
         "BoundingRectangle": ext if ext else {"left": 0, "top": 0, "right": 0, "bottom": 0},
         "Depth": depth,
         "Children": [],
@@ -292,6 +310,7 @@ def get_active_element_state(x, y):
     try:
         app, win = _find_active_window()
         if win is None:
+            logger.info(f"get_active_element_state: no active window found for ({x}, {y})")
             return {}
 
         # Find the deepest element at (x, y)
@@ -311,13 +330,15 @@ def get_active_element_state(x, y):
 
         tree = traverse_accessible(context_node)
         if tree and (tree.get("Name") or tree.get("Children")):
+            logger.info(f"get_active_element_state: captured element at ({x},{y}): Name='{tree.get('Name')}', ControlType='{tree.get('ControlType')}'")
             return tree
 
         # Fallback: return the whole window tree
+        logger.info(f"get_active_element_state: falling back to window tree for ({x},{y})")
         return traverse_accessible(win)
 
     except Exception as e:
-        logger.info(f"get_active_element_state error: {e}")
+        logger.warning(f"get_active_element_state error at ({x},{y}): {e}")
         return {}
 
 
