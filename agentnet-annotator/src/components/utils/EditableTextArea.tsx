@@ -41,7 +41,7 @@ const EditableText: React.FC<EditableTextProps> = ({ text, onSave, row_character
         <div className="w-full max-w-full">
             {isEditing ? (
                 <textarea
-                    rows={Math.max(1, Math.ceil(currentText?.length / row_character_number) + 1)}
+                    rows={Math.max(2, Math.ceil((currentText?.length || 0) / (row_character_number || 40)) + 1)}
                     value={currentText}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -50,16 +50,15 @@ const EditableText: React.FC<EditableTextProps> = ({ text, onSave, row_character
                     className={after}
                 />
             ) : (
-                <p
+                <div
                     className={before}
                     onDoubleClick={handleTextDoubleClick}
+                    style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "break-word" }}
                 >
                     {currentText && currentText.length > 0
-                        ? currentText.length > 25
-                            ? `${currentText.substring(0, 25)}...`
-                            : currentText
+                        ? currentText
                         : defaultText}
-                </p>
+                </div>
             )}
         </div>
     );

@@ -1453,7 +1453,7 @@ const ReviewPage = () => {
                                                         textAlign: "left",
                                                         p: 1,
                                                         width: "100%",
-                                                        overflow: "hidden",
+                                                        overflow: "visible",
                                                     }}
                                                     className={
                                                         activeStep === index
@@ -1494,32 +1494,12 @@ const ReviewPage = () => {
                                                             )}
                                                         </p>
                                                     )}
-                                                    {index === activeStep ? (
-                                                        <EditableText
-                                                            text={
-                                                                event.description as string
-                                                            }
-                                                            row_character_number={
-                                                                18
-                                                            }
-                                                            onSave={(e) =>
-                                                                handleChange(
-                                                                    e,
-                                                                    index,
-                                                                    "description"
-                                                                )
-                                                            }
-                                                            before="text-xs text-slate-600 w-full dark:text-slate-400 my-1 p-0 text-warp"
-                                                            after="block w-full max-w-4xl rounded-md border-0 py-1.5 text-warp text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 focus:dark:ring-indigo-500 dark:ring-gray-700 dark:bg-gray-800 dark:text-gray-100"
-                                                        />
-                                                    ) : (
-                                                        <DisplayTextarea
-                                                            value={
-                                                                event.description as string
-                                                            }
-                                                            index={index}
-                                                        />
-                                                    )}
+                                                    <DisplayTextarea
+                                                        value={
+                                                            event.description as string
+                                                        }
+                                                        index={index}
+                                                    />
 
                                                     {/* Resolved Text Display */}
                                                     {event.resolved_text && (
@@ -1530,6 +1510,19 @@ const ReviewPage = () => {
                                                             <div style={{ overflow: 'auto', maxWidth: '100%', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                                                                 <span className="text-xs text-slate-700 dark:text-slate-300">
                                                                     {event.resolved_text}
+                                                                </span>
+                                                            </div>
+                                                        </Box>
+                                                    )}
+                                                    {/* Raw Keys Display (for debugging) */}
+                                                    {event.raw_keys && index === activeStep && (
+                                                        <Box sx={{ mt: 0.5, display: 'flex', gap: 0.5, alignItems: 'baseline' }}>
+                                                            <span className="text-xs font-bold text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                                                                Raw Keys:
+                                                            </span>
+                                                            <div style={{ overflow: 'auto', maxWidth: '100%', whiteSpace: 'nowrap' }}>
+                                                                <span className="text-xs text-gray-400 dark:text-gray-500">
+                                                                    {replaceWithKeyboardKeys(event.raw_keys.map((k: string) => k.length > 1 ? `$${k}$` : k).join(''))}
                                                                 </span>
                                                             </div>
                                                         </Box>

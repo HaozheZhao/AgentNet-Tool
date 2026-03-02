@@ -361,10 +361,11 @@ class Type(Action):
         self.action_end_video_buffer_time = 0.2
         self.resolved_text = None
         self.has_editing = False
+        self.raw_keys = None
         self.vis_dump_attrs = [
             "id", "action", "description", "justification",
             "start_time", "end_time", "time_stamp", "depth",
-            "resolved_text",
+            "resolved_text", "raw_keys",
         ]
 
     def append(self, event):
@@ -461,6 +462,9 @@ class Type(Action):
 
         # Always use the clean resolved description (no raw correction trajectory)
         self.description = "⌨️ Type: {}".format(self.resolved_description)
+
+        # Store raw keys for debugging (visible in JSONL output)
+        self.raw_keys = self.key_names.copy()
 
         logger.error("transform {}".format(self.key_names))
 

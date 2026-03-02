@@ -235,6 +235,7 @@ export interface eventProp {
     axtree: Record<string, any> | null;
     justification: string | null; //annotator's justification for why this action is necessary
     resolved_text: string | null; //resolved text after backspace/arrow corrections
+    raw_keys: string[] | null; //raw key sequence for debugging
 }
 
 interface statusProp {
