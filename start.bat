@@ -34,17 +34,35 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr :5328 ^| findstr LISTENING 2^
 )
 
 :: ==========================================
-:: 3. Activate virtual environment
+:: 3. Activate conda environment
 :: ==========================================
 
-if not exist "venv\Scripts\activate.bat" (
-    echo [ERROR] Virtual environment not found. Please run setup.bat first.
+:: Try conda directly
+where conda >nul 2>&1
+if not errorlevel 1 goto :activate_env
+
+:: Try common Miniconda locations
+if exist "%USERPROFILE%\miniconda3\Scripts\activate.bat" (
+    call "%USERPROFILE%\miniconda3\Scripts\activate.bat"
+    goto :activate_env
+)
+if exist "%USERPROFILE%\Miniconda3\Scripts\activate.bat" (
+    call "%USERPROFILE%\Miniconda3\Scripts\activate.bat"
+    goto :activate_env
+)
+
+echo [ERROR] Conda not found. Please run setup.bat first.
+pause
+exit /b 1
+
+:activate_env
+call conda activate agentnet
+if errorlevel 1 (
+    echo [ERROR] Conda environment 'agentnet' not found. Please run setup.bat first.
     pause
     exit /b 1
 )
-
-call venv\Scripts\activate.bat
-echo [OK] Virtual environment activated.
+echo [OK] Conda environment 'agentnet' activated.
 
 :: ==========================================
 :: 4. Start the application

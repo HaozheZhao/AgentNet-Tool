@@ -89,8 +89,7 @@ Configure OBS Studio following [OBS_SETUP.md](OBS_SETUP.md).
 
 ### Prerequisites
 
-- **Python 3.11+** from [python.org](https://www.python.org/downloads/)
-- **Node.js 18+** from [nodejs.org](https://nodejs.org/)
+- **Git** from [git-scm.com](https://git-scm.com/download/win) (only manual install needed)
 - **OBS Studio** from [obsproject.com](https://obsproject.com/)
 
 ### Installation
@@ -101,7 +100,7 @@ cd AgentNet-Tool
 setup.bat
 ```
 
-This creates a Python venv, installs pip and npm dependencies.
+This automatically downloads and installs Miniconda (Python 3.11) and Node.js 18 if not found, creates an `agentnet` conda environment, and installs all dependencies.
 
 ### Configuration
 

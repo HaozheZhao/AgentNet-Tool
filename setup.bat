@@ -5,103 +5,162 @@ echo ==========================================
 echo AgentNet Annotator Setup Script (Windows)
 echo ==========================================
 
+:: Get the directory where this script lives
+set "SCRIPT_DIR=%~dp0"
+
 :: ==========================================
-:: 1. Find Python 3.11+
+:: 1. Ensure Miniconda is available
 :: ==========================================
 
-:: Try 'py' launcher first (standard on Windows 11), then 'python'
-set PYTHON_CMD=
-py --version >nul 2>&1
+where conda >nul 2>&1
 if not errorlevel 1 (
-    set PYTHON_CMD=py
+    echo [OK] Conda already available.
+    goto :conda_ready
+)
+
+:: Check common install locations
+set "CONDA_PATH="
+if exist "%USERPROFILE%\miniconda3\Scripts\conda.exe" set "CONDA_PATH=%USERPROFILE%\miniconda3"
+if exist "%USERPROFILE%\Miniconda3\Scripts\conda.exe" set "CONDA_PATH=%USERPROFILE%\Miniconda3"
+if exist "C:\Miniconda3\Scripts\conda.exe" set "CONDA_PATH=C:\Miniconda3"
+
+if defined CONDA_PATH (
+    echo [OK] Found Conda at !CONDA_PATH!
+    call "!CONDA_PATH!\Scripts\activate.bat"
+    goto :conda_ready
+)
+
+:: Download and install Miniconda
+echo [INFO] Conda not found. Downloading Miniconda...
+set "MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Windows-x86_64.exe"
+set "MINICONDA_INSTALLER=%TEMP%\Miniconda3-latest-Windows-x86_64.exe"
+
+where curl >nul 2>&1
+if not errorlevel 1 (
+    curl -L -o "!MINICONDA_INSTALLER!" "!MINICONDA_URL!"
 ) else (
-    python --version >nul 2>&1
-    if not errorlevel 1 (
-        set PYTHON_CMD=python
-    )
+    powershell -Command "Invoke-WebRequest -Uri '!MINICONDA_URL!' -OutFile '!MINICONDA_INSTALLER!'"
 )
 
-if "!PYTHON_CMD!"=="" (
-    echo [ERROR] Python is not installed or not in PATH.
-    echo Please install Python 3.11 or later from https://www.python.org/downloads/
-    echo Make sure to check "Add Python to PATH" during installation.
+if not exist "!MINICONDA_INSTALLER!" (
+    echo [ERROR] Failed to download Miniconda.
     pause
     exit /b 1
 )
 
-for /f "tokens=2 delims= " %%v in ('!PYTHON_CMD! --version 2^>^&1') do set PYTHON_VERSION=%%v
-for /f "tokens=1,2 delims=." %%a in ("!PYTHON_VERSION!") do (
-    set PYTHON_MAJOR=%%a
-    set PYTHON_MINOR=%%b
-)
+echo Installing Miniconda (this may take a few minutes)...
+start /wait "" "!MINICONDA_INSTALLER!" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=%USERPROFILE%\miniconda3
+del "!MINICONDA_INSTALLER!" >nul 2>&1
 
-if !PYTHON_MAJOR! LSS 3 (
-    echo [ERROR] Python 3.11+ is required. Found Python !PYTHON_VERSION!
-    pause
-    exit /b 1
-)
-if !PYTHON_MAJOR! EQU 3 if !PYTHON_MINOR! LSS 11 (
-    echo [ERROR] Python 3.11+ is required. Found Python !PYTHON_VERSION!
-    pause
-    exit /b 1
-)
-echo [OK] Python !PYTHON_VERSION! detected (using "!PYTHON_CMD!").
-
-:: ==========================================
-:: 2. Check Node.js 18+ is installed
-:: ==========================================
-
-node --version >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Node.js is not installed or not in PATH.
-    echo Please install Node.js 18 or later from https://nodejs.org/
+set "CONDA_PATH=%USERPROFILE%\miniconda3"
+if not exist "!CONDA_PATH!\Scripts\conda.exe" (
+    echo [ERROR] Miniconda installation failed.
     pause
     exit /b 1
 )
 
-for /f "tokens=1 delims=." %%a in ('node --version') do set NODE_VER_RAW=%%a
-set NODE_MAJOR=!NODE_VER_RAW:v=!
+:: Add to PATH for this session
+set "PATH=!CONDA_PATH!;!CONDA_PATH!\Scripts;!CONDA_PATH!\Library\bin;!PATH!"
+call "!CONDA_PATH!\Scripts\activate.bat"
+echo [OK] Miniconda installed at !CONDA_PATH!
 
-if !NODE_MAJOR! LSS 18 (
-    echo [ERROR] Node.js 18+ is required. Found Node.js v!NODE_MAJOR!
-    pause
-    exit /b 1
-)
-echo [OK] Node.js detected:
-node --version
-
+:conda_ready
+echo [OK] Conda version:
+conda --version
 echo.
 
 :: ==========================================
-:: 3. Create Python virtual environment
+:: 2. Ensure Node.js 18+ is available
 :: ==========================================
 
-if not exist "venv" (
-    echo Creating Python virtual environment...
-    !PYTHON_CMD! -m venv venv
+where node >nul 2>&1
+if not errorlevel 1 (
+    for /f "tokens=1 delims=." %%a in ('node --version') do set "NODE_VER_RAW=%%a"
+    set "NODE_MAJOR=!NODE_VER_RAW:v=!"
+    if !NODE_MAJOR! GEQ 18 (
+        echo [OK] Node.js detected:
+        node --version
+        goto :node_ready
+    )
+    echo [WARNING] Node.js found but version too old (need 18+).
+)
+
+echo [INFO] Node.js not found. Downloading Node.js 18 LTS...
+set "NODE_URL=https://nodejs.org/dist/v18.20.8/node-v18.20.8-x64.msi"
+set "NODE_INSTALLER=%TEMP%\node-v18.20.8-x64.msi"
+
+where curl >nul 2>&1
+if not errorlevel 1 (
+    curl -L -o "!NODE_INSTALLER!" "!NODE_URL!"
+) else (
+    powershell -Command "Invoke-WebRequest -Uri '!NODE_URL!' -OutFile '!NODE_INSTALLER!'"
+)
+
+if not exist "!NODE_INSTALLER!" (
+    echo [ERROR] Failed to download Node.js.
+    pause
+    exit /b 1
+)
+
+echo Installing Node.js 18 LTS...
+msiexec /i "!NODE_INSTALLER!" /qn /norestart
+del "!NODE_INSTALLER!" >nul 2>&1
+
+:: Refresh PATH to pick up newly installed Node.js
+set "PATH=C:\Program Files\nodejs;!PATH!"
+
+where node >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Node.js installation failed. You may need to restart your terminal.
+    echo Download manually from https://nodejs.org/ if this persists.
+    pause
+    exit /b 1
+)
+echo [OK] Node.js installed:
+node --version
+
+:node_ready
+echo.
+
+:: ==========================================
+:: 3. Create / reuse conda environment
+:: ==========================================
+
+conda env list | findstr /B "agentnet " >nul 2>&1
+if not errorlevel 1 (
+    echo [OK] Conda environment 'agentnet' already exists. Using it.
+) else (
+    echo Creating conda environment 'agentnet' with Python 3.11...
+    conda create -n agentnet python=3.11 -y
     if errorlevel 1 (
-        echo [ERROR] Failed to create virtual environment.
+        echo [ERROR] Failed to create conda environment.
         pause
         exit /b 1
     )
-    echo [OK] Virtual environment created.
-) else (
-    echo [OK] Virtual environment already exists.
+    echo [OK] Conda environment created.
 )
 
+:: Activate the environment
+echo Activating conda environment 'agentnet'...
+call conda activate agentnet
+if errorlevel 1 (
+    echo [ERROR] Failed to activate conda environment.
+    pause
+    exit /b 1
+)
+echo [OK] Environment activated. Python:
+python --version
+
 :: ==========================================
-:: 4. Activate venv and install pip dependencies
+:: 4. Install Python dependencies
 :: ==========================================
 
 echo.
-echo Activating virtual environment...
-call venv\Scripts\activate.bat
-
 echo Upgrading pip...
 python -m pip install --upgrade pip >nul 2>&1
 
 echo Installing Python dependencies...
-pip install -r requirements_windows.txt
+pip install -r "%SCRIPT_DIR%requirements_windows.txt"
 if errorlevel 1 (
     echo [ERROR] Failed to install Python dependencies.
     pause
@@ -115,15 +174,15 @@ echo [OK] Python dependencies installed.
 
 echo.
 echo Installing Node.js dependencies...
-cd agentnet-annotator
+cd "%SCRIPT_DIR%agentnet-annotator"
 call npm install
 if errorlevel 1 (
     echo [ERROR] Failed to install Node.js dependencies.
-    cd ..
+    cd "%SCRIPT_DIR%"
     pause
     exit /b 1
 )
-cd ..
+cd "%SCRIPT_DIR%"
 echo [OK] Node.js dependencies installed.
 
 :: ==========================================
@@ -131,12 +190,30 @@ echo [OK] Node.js dependencies installed.
 :: ==========================================
 
 echo.
-if not exist "agentnet-annotator\api\libs" (
+if not exist "%SCRIPT_DIR%agentnet-annotator\api\libs" (
     echo Creating libs directory for DLLs...
-    mkdir "agentnet-annotator\api\libs"
+    mkdir "%SCRIPT_DIR%agentnet-annotator\api\libs"
     echo [OK] Created agentnet-annotator\api\libs directory.
 ) else (
     echo [OK] libs directory already exists.
+)
+
+:: ==========================================
+:: 7. Create .env from .env.example if needed
+:: ==========================================
+
+echo.
+if not exist "%SCRIPT_DIR%.env" (
+    if exist "%SCRIPT_DIR%.env.example" (
+        copy "%SCRIPT_DIR%.env.example" "%SCRIPT_DIR%.env" >nul
+        echo [OK] Created .env from .env.example
+        echo [INFO] Edit .env with your Aliyun OSS credentials if you need cloud upload.
+        echo        notepad .env
+    ) else (
+        echo [WARNING] .env.example not found. Cloud upload will not work without .env configuration.
+    )
+) else (
+    echo [OK] .env already exists.
 )
 
 :: ==========================================
@@ -150,8 +227,7 @@ echo ==========================================
 echo.
 echo Next steps:
 echo.
-echo 1. Copy .env.example to .env and fill in your OSS credentials:
-echo    copy .env.example .env
+echo 1. (Optional) Edit .env with your Aliyun OSS credentials for cloud upload:
 echo    notepad .env
 echo.
 echo 2. Install OBS Studio (required for screen recording):
