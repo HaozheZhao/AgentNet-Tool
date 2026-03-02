@@ -18,7 +18,7 @@ if exist ".env" (
     echo [WARNING] .env file not found.
     echo Cloud upload features may not work without OSS credentials.
     echo Copy .env.example to .env and configure your credentials.
-    echo.
+    echo:
 )
 
 :: ==========================================
@@ -34,28 +34,35 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr :5328 ^| findstr LISTENING 2^
 )
 
 :: ==========================================
-:: 3. Activate conda environment
+:: 3. Find conda and activate environment
 :: ==========================================
 
-:: Try conda directly
-where conda >nul 2>&1
-if not errorlevel 1 goto :activate_env
+:: Find conda root directory
+set "CONDA_ROOT="
+if exist "%USERPROFILE%\miniconda3\Scripts\activate.bat" set "CONDA_ROOT=%USERPROFILE%\miniconda3"
+if exist "%USERPROFILE%\Miniconda3\Scripts\activate.bat" set "CONDA_ROOT=%USERPROFILE%\Miniconda3"
+if exist "C:\Miniconda3\Scripts\activate.bat" set "CONDA_ROOT=C:\Miniconda3"
 
-:: Try common Miniconda locations
-if exist "%USERPROFILE%\miniconda3\Scripts\activate.bat" (
-    call "%USERPROFILE%\miniconda3\Scripts\activate.bat"
-    goto :activate_env
+:: Also try to find via where
+if not defined CONDA_ROOT (
+    where conda.exe >nul 2>&1
+    if not errorlevel 1 (
+        for /f "tokens=*" %%i in ('where conda.exe') do (
+            if not defined CONDA_ROOT (
+                set "_CPATH=%%i"
+                set "CONDA_ROOT=!_CPATH:\Scripts\conda.exe=!"
+            )
+        )
+    )
 )
-if exist "%USERPROFILE%\Miniconda3\Scripts\activate.bat" (
-    call "%USERPROFILE%\Miniconda3\Scripts\activate.bat"
-    goto :activate_env
+
+if not defined CONDA_ROOT (
+    echo [ERROR] Conda not found. Please run setup.bat first.
+    pause
+    exit /b 1
 )
 
-echo [ERROR] Conda not found. Please run setup.bat first.
-pause
-exit /b 1
-
-:activate_env
+call "!CONDA_ROOT!\Scripts\activate.bat"
 call conda activate agentnet
 if errorlevel 1 (
     echo [ERROR] Conda environment 'agentnet' not found. Please run setup.bat first.
@@ -68,10 +75,10 @@ echo [OK] Conda environment 'agentnet' activated.
 :: 4. Start the application
 :: ==========================================
 
-echo.
+echo:
 echo Starting AgentNet Annotator application...
-echo (Close this window or press Ctrl+C to stop)
-echo.
+echo Close this window or press Ctrl+C to stop
+echo:
 cd agentnet-annotator
 call npm start
 

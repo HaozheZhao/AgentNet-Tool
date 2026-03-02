@@ -12,21 +12,28 @@ set "SCRIPT_DIR=%~dp0"
 :: 1. Ensure Miniconda is available
 :: ==========================================
 
-where conda >nul 2>&1
+:: Find conda.exe (not conda.bat - .bat breaks batch parser state)
+set "CONDA_EXE="
+where conda.exe >nul 2>&1
 if not errorlevel 1 (
-    echo [OK] Conda already available.
-    goto :conda_ready
+    for /f "tokens=*" %%i in ('where conda.exe') do (
+        if not defined CONDA_EXE set "CONDA_EXE=%%i"
+    )
 )
 
 :: Check common install locations
-set "CONDA_PATH="
-if exist "%USERPROFILE%\miniconda3\Scripts\conda.exe" set "CONDA_PATH=%USERPROFILE%\miniconda3"
-if exist "%USERPROFILE%\Miniconda3\Scripts\conda.exe" set "CONDA_PATH=%USERPROFILE%\Miniconda3"
-if exist "C:\Miniconda3\Scripts\conda.exe" set "CONDA_PATH=C:\Miniconda3"
+if not defined CONDA_EXE (
+    if exist "%USERPROFILE%\miniconda3\Scripts\conda.exe" set "CONDA_EXE=%USERPROFILE%\miniconda3\Scripts\conda.exe"
+)
+if not defined CONDA_EXE (
+    if exist "%USERPROFILE%\Miniconda3\Scripts\conda.exe" set "CONDA_EXE=%USERPROFILE%\Miniconda3\Scripts\conda.exe"
+)
+if not defined CONDA_EXE (
+    if exist "C:\Miniconda3\Scripts\conda.exe" set "CONDA_EXE=C:\Miniconda3\Scripts\conda.exe"
+)
 
-if defined CONDA_PATH (
-    echo [OK] Found Conda at !CONDA_PATH!
-    call "!CONDA_PATH!\Scripts\activate.bat"
+if defined CONDA_EXE (
+    echo [OK] Found conda at !CONDA_EXE!
     goto :conda_ready
 )
 
@@ -48,31 +55,31 @@ if not exist "!MINICONDA_INSTALLER!" (
     exit /b 1
 )
 
-echo Installing Miniconda (this may take a few minutes)...
+echo Installing Miniconda - this may take a few minutes...
 start /wait "" "!MINICONDA_INSTALLER!" /InstallationType=JustMe /AddToPath=1 /RegisterPython=0 /S /D=%USERPROFILE%\miniconda3
 del "!MINICONDA_INSTALLER!" >nul 2>&1
 
-set "CONDA_PATH=%USERPROFILE%\miniconda3"
-if not exist "!CONDA_PATH!\Scripts\conda.exe" (
+set "CONDA_EXE=%USERPROFILE%\miniconda3\Scripts\conda.exe"
+if not exist "!CONDA_EXE!" (
     echo [ERROR] Miniconda installation failed.
     pause
     exit /b 1
 )
 
 :: Add to PATH for this session
-set "PATH=!CONDA_PATH!;!CONDA_PATH!\Scripts;!CONDA_PATH!\Library\bin;!PATH!"
-call "!CONDA_PATH!\Scripts\activate.bat"
-echo [OK] Miniconda installed at !CONDA_PATH!
+set "PATH=%USERPROFILE%\miniconda3;%USERPROFILE%\miniconda3\Scripts;%USERPROFILE%\miniconda3\Library\bin;!PATH!"
+echo [OK] Miniconda installed.
 
 :conda_ready
-echo [OK] Conda version:
-call conda --version
-echo.
+:: Show version using conda.exe directly (never call conda.bat - it breaks batch state)
+for /f "tokens=*" %%v in ('"!CONDA_EXE!" --version 2^>^&1') do echo [OK] %%v
+echo:
 
 :: ==========================================
 :: 2. Ensure Node.js 18+ is available
 :: ==========================================
 
+set "NODE_OK=0"
 where node >nul 2>&1
 if not errorlevel 1 (
     for /f "tokens=1 delims=." %%a in ('node --version') do set "NODE_VER_RAW=%%a"
@@ -80,58 +87,61 @@ if not errorlevel 1 (
     if !NODE_MAJOR! GEQ 18 (
         echo [OK] Node.js detected:
         node --version
-        goto :node_ready
+        set "NODE_OK=1"
+    ) else (
+        echo [WARNING] Node.js found but version too old - need 18+.
     )
-    echo [WARNING] Node.js found but version too old (need 18+).
 )
 
-echo [INFO] Node.js not found. Downloading Node.js 18 LTS...
-set "NODE_URL=https://nodejs.org/dist/v18.20.8/node-v18.20.8-x64.msi"
-set "NODE_INSTALLER=%TEMP%\node-v18.20.8-x64.msi"
+if "!NODE_OK!"=="0" (
+    echo [INFO] Downloading Node.js 18 LTS...
+    set "NODE_URL=https://nodejs.org/dist/v18.20.8/node-v18.20.8-x64.msi"
+    set "NODE_INSTALLER=%TEMP%\node-v18.20.8-x64.msi"
 
-where curl >nul 2>&1
-if not errorlevel 1 (
-    curl -L -o "!NODE_INSTALLER!" "!NODE_URL!"
-) else (
-    powershell -Command "Invoke-WebRequest -Uri '!NODE_URL!' -OutFile '!NODE_INSTALLER!'"
+    where curl >nul 2>&1
+    if not errorlevel 1 (
+        curl -L -o "!NODE_INSTALLER!" "!NODE_URL!"
+    ) else (
+        powershell -Command "Invoke-WebRequest -Uri '!NODE_URL!' -OutFile '!NODE_INSTALLER!'"
+    )
+
+    if not exist "!NODE_INSTALLER!" (
+        echo [ERROR] Failed to download Node.js.
+        pause
+        exit /b 1
+    )
+
+    echo Installing Node.js 18 LTS...
+    msiexec /i "!NODE_INSTALLER!" /qn /norestart
+    del "!NODE_INSTALLER!" >nul 2>&1
+
+    :: Refresh PATH to pick up newly installed Node.js
+    set "PATH=C:\Program Files\nodejs;!PATH!"
+
+    where node >nul 2>&1
+    if errorlevel 1 (
+        echo [ERROR] Node.js installation failed. You may need to restart your terminal.
+        echo Download manually from https://nodejs.org/ if this persists.
+        pause
+        exit /b 1
+    )
+    echo [OK] Node.js installed:
+    node --version
 )
 
-if not exist "!NODE_INSTALLER!" (
-    echo [ERROR] Failed to download Node.js.
-    pause
-    exit /b 1
-)
-
-echo Installing Node.js 18 LTS...
-msiexec /i "!NODE_INSTALLER!" /qn /norestart
-del "!NODE_INSTALLER!" >nul 2>&1
-
-:: Refresh PATH to pick up newly installed Node.js
-set "PATH=C:\Program Files\nodejs;!PATH!"
-
-where node >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Node.js installation failed. You may need to restart your terminal.
-    echo Download manually from https://nodejs.org/ if this persists.
-    pause
-    exit /b 1
-)
-echo [OK] Node.js installed:
-node --version
-
-:node_ready
-echo.
+echo:
 
 :: ==========================================
 :: 3. Create / reuse conda environment
 :: ==========================================
 
-call conda env list | findstr /B "agentnet " >nul 2>&1
+"!CONDA_EXE!" env list > "%TEMP%\conda_envs.txt" 2>&1
+findstr /B "agentnet " "%TEMP%\conda_envs.txt" >nul 2>&1
 if not errorlevel 1 (
-    echo [OK] Conda environment 'agentnet' already exists. Using it.
+    echo [OK] Conda environment 'agentnet' already exists.
 ) else (
     echo Creating conda environment 'agentnet' with Python 3.11...
-    call conda create -n agentnet python=3.11 -y
+    "!CONDA_EXE!" create -n agentnet python=3.11 -y
     if errorlevel 1 (
         echo [ERROR] Failed to create conda environment.
         pause
@@ -139,10 +149,19 @@ if not errorlevel 1 (
     )
     echo [OK] Conda environment created.
 )
+del "%TEMP%\conda_envs.txt" >nul 2>&1
 
-:: Activate the environment
+:: Activate the environment (this one needs the batch wrapper)
 echo Activating conda environment 'agentnet'...
+
+:: Ensure conda shell hooks are initialized first
+set "CONDA_ROOT=!CONDA_EXE:\Scripts\conda.exe=!"
+if exist "!CONDA_ROOT!\Scripts\activate.bat" (
+    call "!CONDA_ROOT!\Scripts\activate.bat"
+)
 call conda activate agentnet
+
+python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Failed to activate conda environment.
     pause
@@ -155,7 +174,7 @@ python --version
 :: 4. Install Python dependencies
 :: ==========================================
 
-echo.
+echo:
 echo Upgrading pip...
 python -m pip install --upgrade pip >nul 2>&1
 
@@ -172,7 +191,7 @@ echo [OK] Python dependencies installed.
 :: 5. Install Node.js dependencies
 :: ==========================================
 
-echo.
+echo:
 echo Installing Node.js dependencies...
 cd "%SCRIPT_DIR%agentnet-annotator"
 call npm install
@@ -189,7 +208,7 @@ echo [OK] Node.js dependencies installed.
 :: 6. Check/create libs directory for DLLs
 :: ==========================================
 
-echo.
+echo:
 if not exist "%SCRIPT_DIR%agentnet-annotator\api\libs" (
     echo Creating libs directory for DLLs...
     mkdir "%SCRIPT_DIR%agentnet-annotator\api\libs"
@@ -202,13 +221,12 @@ if not exist "%SCRIPT_DIR%agentnet-annotator\api\libs" (
 :: 7. Create .env from .env.example if needed
 :: ==========================================
 
-echo.
+echo:
 if not exist "%SCRIPT_DIR%.env" (
     if exist "%SCRIPT_DIR%.env.example" (
         copy "%SCRIPT_DIR%.env.example" "%SCRIPT_DIR%.env" >nul
         echo [OK] Created .env from .env.example
         echo [INFO] Edit .env with your Aliyun OSS credentials if you need cloud upload.
-        echo        notepad .env
     ) else (
         echo [WARNING] .env.example not found. Cloud upload will not work without .env configuration.
     )
@@ -220,22 +238,19 @@ if not exist "%SCRIPT_DIR%.env" (
 :: Done
 :: ==========================================
 
-echo.
+echo:
 echo ==========================================
 echo Setup completed successfully!
 echo ==========================================
-echo.
+echo:
 echo Next steps:
-echo.
-echo 1. (Optional) Edit .env with your Aliyun OSS credentials for cloud upload:
-echo    notepad .env
-echo.
-echo 2. Install OBS Studio (required for screen recording):
+echo:
+echo 1. Install OBS Studio - required for screen recording:
 echo    Download from https://obsproject.com/
-echo.
-echo 3. Run the application:
+echo:
+echo 2. Run the application:
 echo    start.bat
-echo.
+echo:
 
 pause
 endlocal
