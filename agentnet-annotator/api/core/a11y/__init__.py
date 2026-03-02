@@ -5,7 +5,7 @@ import sys
 if sys.platform == "darwin":
     from . import _darwin as impl
 elif sys.platform == "linux":
-    impl = None
+    from . import _linux as impl
 elif sys.platform == "win32":
     from . import _windows as impl
 else:

@@ -96,7 +96,7 @@ class Recorder(QThread):
             on_press=self.on_press, on_release=self.on_release
         )
 
-        if (generate_window_a11y or generate_element_a11y) and system() != "Linux":
+        if generate_window_a11y or generate_element_a11y:
             self.a11y_listener = A11yListener(
                 generate_window_a11y, generate_element_a11y
             )
@@ -177,7 +177,7 @@ class Recorder(QThread):
         # during the 50-300ms blocking OBS start call
         self.mouse_listener.start()
         self.keyboard_listener.start()
-        if self.gen_element and system() != "Linux":
+        if self.gen_element:
             self.a11y_listener.start()
             logger.info("A11y listener start.")
         if self.gen_window:
@@ -199,13 +199,13 @@ class Recorder(QThread):
                     logger.info("write_axtree_data")
                     write_encrypt_line(self.a11y_file, axtree_queue.get())
 
-            if self.gen_element and system() != "Linux":
+            if self.gen_element:
                 element_queue = self.a11y_listener.element_queue
                 if not element_queue.empty():
                     logger.info("write_element_data")
                     write_encrypt_line(self.element_file, element_queue.get())
 
-            if system() != "Linux" and hasattr(self, 'a11y_listener'):
+            if hasattr(self, 'a11y_listener'):
                 top_window_queue = self.a11y_listener.top_window_queue
                 if not top_window_queue.empty():
                     write_encrypt_line(self.top_window_file,
@@ -242,7 +242,7 @@ class Recorder(QThread):
 
             self.mouse_listener.stop()
             self.keyboard_listener.stop()
-            if self.gen_element and system() != "Linux":
+            if self.gen_element:
                 self.a11y_listener.stop()
             if self.gen_window:
                 self.keyframe_detector.stop()
@@ -254,14 +254,14 @@ class Recorder(QThread):
                     args=(self.keyframe_detector, self.a11y_file),
                 )
                 a11y_writer_thread.start()
-            if self.gen_element and system() != "Linux":
+            if self.gen_element:
                 element_writer_thread = Thread(
                     target=self.write_element_data,
                     args=(self.a11y_listener, self.element_file),
                 )
                 element_writer_thread.start()
 
-            if system() != "Linux" and hasattr(self, 'a11y_listener'):
+            if hasattr(self, 'a11y_listener'):
                 top_window_writer_thread = Thread(
                     target=self.write_top_window_data,
                     args=(self.a11y_listener, self.top_window_file),
@@ -271,9 +271,9 @@ class Recorder(QThread):
             # Wait for the writer thread to complete
             if self.gen_window:
                 a11y_writer_thread.join()
-            if self.gen_element and system() != "Linux":
+            if self.gen_element:
                 element_writer_thread.join()
-            if system() != "Linux" and hasattr(self, 'a11y_listener'):
+            if hasattr(self, 'a11y_listener'):
                 top_window_writer_thread.join()
             self.obs_client.stop_recording()
 
@@ -285,7 +285,7 @@ class Recorder(QThread):
             self.metadata_manager.save_metadata()
             if self.gen_window:
                 self.a11y_file.close()
-            if self.gen_element and system() != "Linux":
+            if self.gen_element:
                 self.element_file.close()
 
             # self.recording_stopped.emit()

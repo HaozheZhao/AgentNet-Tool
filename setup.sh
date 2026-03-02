@@ -124,7 +124,18 @@ echo "Activating conda environment..."
 conda activate agentnet
 
 # ==========================================
-# 4. Install Python dependencies
+# 4. Install system dependencies for AT-SPI (accessibility)
+# ==========================================
+
+echo ""
+echo "Installing system packages for AT-SPI accessibility support..."
+sudo apt-get install -y gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core 2>/dev/null || {
+    echo -e "${YELLOW}Could not install AT-SPI packages automatically."
+    echo -e "Please run: sudo apt-get install gir1.2-atspi-2.0 libgirepository1.0-dev pkg-config at-spi2-core${NC}"
+}
+
+# ==========================================
+# 5. Install Python dependencies
 # ==========================================
 
 echo ""
@@ -132,7 +143,7 @@ echo "Installing Python dependencies..."
 pip install -r "${SCRIPT_DIR}/requirements_ubuntu.txt"
 
 # ==========================================
-# 5. Install OpenCV with GStreamer support
+# 6. Install OpenCV with GStreamer support
 # ==========================================
 
 echo ""
@@ -149,7 +160,7 @@ conda install -y -c conda-forge opencv py-opencv libopencv \
   gstreamer gst-plugins-base gst-plugins-good gst-plugins-bad gst-plugins-ugly
 
 # ==========================================
-# 6. Install Node.js dependencies
+# 7. Install Node.js dependencies
 # ==========================================
 
 echo ""
