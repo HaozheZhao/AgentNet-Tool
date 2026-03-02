@@ -144,12 +144,12 @@ class OBSClient:
 
         # Set active video resolution directly (profile params alone don't update the live pipeline)
         self.req_client.set_video_settings(
-            fps_numerator=fps,
-            fps_denominator=1,
+            numerator=fps,
+            denominator=1,
             base_width=base_width,
             base_height=base_height,
-            output_width=base_width,
-            output_height=base_height,
+            out_width=base_width,
+            out_height=base_height,
         )
         logger.info(f"OBSClient: set video settings to {base_width}x{base_height} @ {fps}fps")
 

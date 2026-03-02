@@ -82,12 +82,12 @@ class ObsService:
                         f"auto-correcting to {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}"
                     )
                     test_client.set_video_settings(
-                        fps_numerator=video_settings.fps_numerator,
-                        fps_denominator=video_settings.fps_denominator,
+                        numerator=video_settings.fps_numerator,
+                        denominator=video_settings.fps_denominator,
                         base_width=REQUIRED_WIDTH,
                         base_height=REQUIRED_HEIGHT,
-                        output_width=REQUIRED_WIDTH,
-                        output_height=REQUIRED_HEIGHT,
+                        out_width=REQUIRED_WIDTH,
+                        out_height=REQUIRED_HEIGHT,
                     )
                     warnings.append(
                         f"OBS output resolution was {obs_out_w}x{obs_out_h}, "
