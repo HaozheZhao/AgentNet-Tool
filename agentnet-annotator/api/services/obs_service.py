@@ -71,17 +71,28 @@ class ObsService:
             test_client = obs_ws.ReqClient()
             test_client.get_version()
 
-            # Check OBS video output resolution
+            # Check OBS video output resolution, auto-fix if wrong
             try:
                 video_settings = test_client.get_video_settings()
                 obs_out_w = video_settings.output_width
                 obs_out_h = video_settings.output_height
                 if obs_out_w != REQUIRED_WIDTH or obs_out_h != REQUIRED_HEIGHT:
-                    return FAILED, (
-                        f"OBS output resolution is {obs_out_w}x{obs_out_h}, but annotation "
-                        f"requires {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}. Please change "
-                        f"OBS output resolution in Settings > Video > Output (Scaled) Resolution."
-                    ), warnings
+                    logger.warning(
+                        f"OBS output resolution is {obs_out_w}x{obs_out_h}, "
+                        f"auto-correcting to {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}"
+                    )
+                    test_client.set_video_settings(
+                        fps_numerator=video_settings.fps_numerator,
+                        fps_denominator=video_settings.fps_denominator,
+                        base_width=REQUIRED_WIDTH,
+                        base_height=REQUIRED_HEIGHT,
+                        output_width=REQUIRED_WIDTH,
+                        output_height=REQUIRED_HEIGHT,
+                    )
+                    warnings.append(
+                        f"OBS output resolution was {obs_out_w}x{obs_out_h}, "
+                        f"auto-corrected to {REQUIRED_WIDTH}x{REQUIRED_HEIGHT}."
+                    )
             except Exception as e:
                 warnings.append(f"Could not check OBS output resolution: {str(e)}")
 
