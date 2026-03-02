@@ -173,8 +173,8 @@ class Recorder(QThread):
         self._is_recording = True
 
         self.metadata_manager.collect()
-        self.obs_client.start_recording()
-        self.metadata_manager.set_video_start_timestamp(time.perf_counter())
+        # Start listeners BEFORE OBS recording to avoid losing first keystrokes
+        # during the 50-300ms blocking OBS start call
         self.mouse_listener.start()
         self.keyboard_listener.start()
         if self.gen_element and system() != "Linux":
@@ -183,6 +183,8 @@ class Recorder(QThread):
         if self.gen_window:
             self.keyframe_detector.start()
             logger.info("Keyframe detector start.")
+        self.obs_client.start_recording()
+        self.metadata_manager.set_video_start_timestamp(time.perf_counter())
 
         while self._is_recording:
             event = self.event_queue.get()

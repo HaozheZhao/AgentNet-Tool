@@ -1,5 +1,6 @@
 """Recording service for managing recording operations."""
 
+import json
 import os
 import time
 import threading
@@ -153,6 +154,14 @@ class RecordingService:
             events = self._load_recording_events(folder_path)
             recording_data["events"] = events
 
+            # Load knowledge points if available
+            kp_path = os.path.join(folder_path, "knowledge_points.json")
+            if os.path.exists(kp_path):
+                with open(kp_path, "r", encoding="utf-8") as f:
+                    recording_data["knowledge_points"] = json.load(f)
+            else:
+                recording_data["knowledge_points"] = []
+
             self.opened_single_recording = recording_data
             logger.info("RecordingService: get_single_recording completed")
             return SUCCEED, recording_data
@@ -162,7 +171,7 @@ class RecordingService:
             return FAILED, {"error": "Failed to load recording"}
 
     def confirm_recording(
-        self, recording_name: str, events_data: list
+        self, recording_name: str, events_data: list, knowledge_points: list = None
     ) -> Tuple[str, str]:
         """Confirm and save recording modifications."""
         logger.info("RecordingService: confirm_recording")
@@ -174,6 +183,12 @@ class RecordingService:
             folder_path = os.path.join(RECORDING_DIR, recording_name)
             self._remove_unused_videos(folder_path, events_data)
             self._save_modified_events(folder_path, events_data)
+
+            if knowledge_points is not None:
+                kp_path = os.path.join(folder_path, "knowledge_points.json")
+                with open(kp_path, "w", encoding="utf-8") as f:
+                    json.dump(knowledge_points, f, indent=2, ensure_ascii=False)
+
             return SUCCEED, "Recording modifications saved successfully"
 
         except Exception as e:

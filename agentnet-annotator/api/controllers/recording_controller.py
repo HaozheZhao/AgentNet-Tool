@@ -62,11 +62,21 @@ class RecordingController:
         if not request.json:
             return ErrorHandler.create_error_response("No data provided", 400)
 
-        events_data = request.json
+        data = request.json
+        # Support both old format (list of events) and new format (dict with events + knowledge_points)
+        if isinstance(data, dict):
+            events_data = data.get("events", [])
+            knowledge_points = data.get("knowledge_points", [])
+        else:
+            events_data = data
+            knowledge_points = []
+
         if not isinstance(events_data, list):
             return ErrorHandler.create_error_response("Events data must be a list", 400)
 
-        status, message = self.recording_service.confirm_recording(recording_name, events_data)
+        status, message = self.recording_service.confirm_recording(
+            recording_name, events_data, knowledge_points
+        )
         return ErrorHandler.handle_service_response((status, message))
 
     @handle_api_errors
