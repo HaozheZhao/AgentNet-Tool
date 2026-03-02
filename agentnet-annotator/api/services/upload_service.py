@@ -33,7 +33,7 @@ def upload_recording(recording_name, annotator_info=None):
             data = json.load(f)
             task_name=data['task_name']
 
-        upload_folder = os.getenv("OSS_UPLOAD_FOLDER", "recordings_new")
+        upload_folder = annotator_info.get("upload_folder", "recordings_new") if annotator_info else "recordings_new"
 
         # Include username in upload folder name if annotator_info is provided
         username = ""

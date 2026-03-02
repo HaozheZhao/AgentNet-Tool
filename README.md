@@ -128,7 +128,6 @@ start.bat
 | `OSS_ACCESS_KEY_ID` | Aliyun access key ID |
 | `OSS_ACCESS_KEY_SECRET` | Aliyun access key secret |
 | `OSS_BUCKET_NAME` | OSS bucket name |
-| `OSS_UPLOAD_FOLDER` | Upload folder path within bucket (default: `recordings_new`) |
 | `CONDA_PATH` | (Ubuntu only) Custom conda install path |
 
 ---

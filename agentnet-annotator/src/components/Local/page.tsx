@@ -301,6 +301,9 @@ const Page = () => {
     });
     const [annotatorTaskId, setAnnotatorTaskId] = useState("");
     const [annotatorQuery, setAnnotatorQuery] = useState("");
+    const [uploadFolder, setUploadFolder] = useState(() => {
+        return localStorage.getItem("oss_upload_folder") || "recordings_new";
+    });
     const [annotatorInfoLocked, setAnnotatorInfoLocked] = useState(false);
     // Block navigating elsewhere when data has been entered into the input
     let blocker = useBlocker(({ currentLocation, nextLocation }) => dirty);
@@ -799,6 +802,7 @@ const Page = () => {
                     username: annotatorUsername.trim(),
                     task_id: annotatorTaskId.trim(),
                     query: annotatorQuery.trim(),
+                    upload_folder: uploadFolder.trim(),
                 },
             })
                 .then((data) => {
@@ -1125,6 +1129,7 @@ const Page = () => {
             return;
         }
         localStorage.setItem("annotator_username", annotatorUsername.trim());
+        localStorage.setItem("oss_upload_folder", uploadFolder.trim());
         setAnnotatorInfoLocked(true);
     };
 
@@ -1159,7 +1164,7 @@ const Page = () => {
                         )}
                     </Box>
                     <Grid container spacing={1} sx={{ alignItems: "flex-end" }}>
-                        <Grid xs={3}>
+                        <Grid xs={2}>
                             <FormControl size="sm">
                                 <FormLabel>Username</FormLabel>
                                 <Input
@@ -1172,7 +1177,7 @@ const Page = () => {
                                 />
                             </FormControl>
                         </Grid>
-                        <Grid xs={3}>
+                        <Grid xs={2}>
                             <FormControl size="sm">
                                 <FormLabel>Task ID</FormLabel>
                                 <Input
@@ -1185,7 +1190,7 @@ const Page = () => {
                                 />
                             </FormControl>
                         </Grid>
-                        <Grid xs={4}>
+                        <Grid xs={3}>
                             <FormControl size="sm">
                                 <FormLabel>Query</FormLabel>
                                 <Input
@@ -1193,6 +1198,19 @@ const Page = () => {
                                     placeholder="Task query/instruction"
                                     value={annotatorQuery}
                                     onChange={(e) => setAnnotatorQuery(e.target.value)}
+                                    readOnly={annotatorInfoLocked}
+                                    variant={annotatorInfoLocked ? "plain" : "outlined"}
+                                />
+                            </FormControl>
+                        </Grid>
+                        <Grid xs={3}>
+                            <FormControl size="sm">
+                                <FormLabel>Upload Folder</FormLabel>
+                                <Input
+                                    size="sm"
+                                    placeholder="OSS upload folder"
+                                    value={uploadFolder}
+                                    onChange={(e) => setUploadFolder(e.target.value)}
                                     readOnly={annotatorInfoLocked}
                                     variant={annotatorInfoLocked ? "plain" : "outlined"}
                                 />
