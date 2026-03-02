@@ -28,7 +28,7 @@ if exist ".env" (
 echo Checking for existing processes on port 5328...
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr :5328 ^| findstr LISTENING 2^>nul') do (
     if not "%%p"=="0" (
-        echo Killing existing process on port 5328 (PID: %%p)...
+        echo Killing existing process on port 5328, PID: %%p
         taskkill /F /PID %%p >nul 2>&1
     )
 )

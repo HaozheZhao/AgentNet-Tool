@@ -66,7 +66,7 @@ echo [OK] Miniconda installed at !CONDA_PATH!
 
 :conda_ready
 echo [OK] Conda version:
-conda --version
+call conda --version
 echo.
 
 :: ==========================================
@@ -126,12 +126,12 @@ echo.
 :: 3. Create / reuse conda environment
 :: ==========================================
 
-conda env list | findstr /B "agentnet " >nul 2>&1
+call conda env list | findstr /B "agentnet " >nul 2>&1
 if not errorlevel 1 (
     echo [OK] Conda environment 'agentnet' already exists. Using it.
 ) else (
     echo Creating conda environment 'agentnet' with Python 3.11...
-    conda create -n agentnet python=3.11 -y
+    call conda create -n agentnet python=3.11 -y
     if errorlevel 1 (
         echo [ERROR] Failed to create conda environment.
         pause
