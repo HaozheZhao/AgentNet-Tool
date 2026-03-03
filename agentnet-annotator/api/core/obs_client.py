@@ -142,15 +142,32 @@ class OBSClient:
             base_width *= 2
             base_height *= 2
 
-        # Set active video resolution directly (profile params alone don't update the live pipeline)
-        self.req_client.set_video_settings(
-            numerator=fps,
-            denominator=1,
-            base_width=base_width,
-            base_height=base_height,
-            out_width=base_width,
-            out_height=base_height,
-        )
+        # Set active video resolution directly (profile params alone don't update the live pipeline).
+        # This fails if OBS has an active output (recording, replay buffer, virtual camera).
+        # In that case, stop all outputs first, then retry.
+        try:
+            self.req_client.set_video_settings(
+                numerator=fps,
+                denominator=1,
+                base_width=base_width,
+                base_height=base_height,
+                out_width=base_width,
+                out_height=base_height,
+            )
+        except Exception:
+            logger.warning("OBSClient: set_video_settings failed (output active), stopping outputs and retrying")
+            self._stop_all_outputs()
+            try:
+                self.req_client.set_video_settings(
+                    numerator=fps,
+                    denominator=1,
+                    base_width=base_width,
+                    base_height=base_height,
+                    out_width=base_width,
+                    out_height=base_height,
+                )
+            except Exception as e:
+                logger.warning(f"OBSClient: set_video_settings retry failed: {e}, continuing with profile params only")
         logger.info(f"OBSClient: set video settings to {base_width}x{base_height} @ {fps}fps")
 
         # Also persist to profile config for consistency
@@ -190,6 +207,29 @@ class OBSClient:
                 except Exception as e:
                     # In case there is no Mic/Aux input, this will throw an error
                     logger.warning(f"Could not mute {inp_name} input: {e}")
+
+    def _stop_all_outputs(self):
+        """Stop any active OBS outputs so video settings can be changed."""
+        try:
+            status = self.req_client.get_record_status()
+            if status.output_active:
+                self.req_client.stop_record()
+                time.sleep(0.5)
+        except Exception:
+            pass
+        try:
+            status = self.req_client.get_replay_buffer_status()
+            if status.output_active:
+                self.req_client.stop_replay_buffer()
+                time.sleep(0.3)
+        except Exception:
+            pass
+        try:
+            status = self.req_client.get_virtual_cam_status()
+            if status.output_active:
+                self.req_client.stop_virtual_cam()
+        except Exception:
+            pass
 
     def start_recording(self):
         self.req_client.start_record()
