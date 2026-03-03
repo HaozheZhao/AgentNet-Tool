@@ -63,6 +63,7 @@ def upload_recording(recording_name, annotator_info=None):
                 "username": annotator_info.get("username", ""),
                 "task_id": annotator_info.get("task_id", ""),
                 "query": annotator_info.get("query", ""),
+                "step_by_step_instruction": annotator_info.get("step_by_step_instruction", ""),
                 "upload_timestamp": datetime.now().isoformat(),
                 "oss_upload_folder": oss_path,
             }

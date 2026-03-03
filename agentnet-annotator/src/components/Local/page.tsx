@@ -41,6 +41,7 @@ import {
     FormLabel,
     FormControl,
     CardContent,
+    Textarea,
 } from "@mui/joy";
 import LockIcon from "@mui/icons-material/Lock";
 import EditIcon from "@mui/icons-material/Edit";
@@ -305,6 +306,7 @@ const Page = () => {
     });
     const [annotatorTaskId, setAnnotatorTaskId] = useState("");
     const [annotatorQuery, setAnnotatorQuery] = useState("");
+    const [annotatorStepByStep, setAnnotatorStepByStep] = useState("");
     const [uploadFolder, setUploadFolder] = useState(() => {
         return localStorage.getItem("oss_upload_folder") || "recordings_new";
     });
@@ -369,6 +371,7 @@ const Page = () => {
         // Reset annotator task-specific fields when recording changes
         setAnnotatorTaskId("");
         setAnnotatorQuery("");
+        setAnnotatorStepByStep("");
         setAnnotatorInfoLocked(false);
     }, [recordingData]);
 
@@ -829,6 +832,7 @@ const Page = () => {
                     username: annotatorUsername.trim(),
                     task_id: annotatorTaskId.trim(),
                     query: annotatorQuery.trim(),
+                    step_by_step_instruction: annotatorStepByStep.trim(),
                     upload_folder: uploadFolder.trim(),
                 },
             })
@@ -1294,6 +1298,21 @@ const Page = () => {
                             )}
                         </Grid>
                     </Grid>
+                    <Box sx={{ mt: 1 }}>
+                        <FormControl size="sm">
+                            <FormLabel>Step-by-Step Instruction</FormLabel>
+                            <Textarea
+                                size="sm"
+                                minRows={2}
+                                maxRows={5}
+                                placeholder="Optional: step-by-step instruction for the task (e.g., 1. Open browser 2. Go to google.com 3. Search for ...)"
+                                value={annotatorStepByStep}
+                                onChange={(e) => setAnnotatorStepByStep(e.target.value)}
+                                readOnly={annotatorInfoLocked}
+                                variant={annotatorInfoLocked ? "plain" : "outlined"}
+                            />
+                        </FormControl>
+                    </Box>
                 </CardContent>
             </Card>
 
