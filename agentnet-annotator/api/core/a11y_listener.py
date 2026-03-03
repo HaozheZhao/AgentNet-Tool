@@ -32,10 +32,14 @@ class A11yListener:
                 ).start()
 
     def _enqueue_element_data(self, timestamp, x, y):
-        self._element_queue.put(
-            {"time_stamp": timestamp, "a11y_tree": get_active_element_data(x, y)},
-            block=False,
-        )
+        try:
+            data = get_active_element_data(x, y)
+            self._element_queue.put(
+                {"time_stamp": timestamp, "a11y_tree": data},
+                block=False,
+            )
+        except Exception as e:
+            logger.warning(f"a11y_listener: element capture failed at ({x},{y}): {e}")
 
     def _get_top_window(self):
         last_window_name = None

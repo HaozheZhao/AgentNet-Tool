@@ -1,6 +1,13 @@
 import * as ReactDOM from "react-dom/client";
 import App from "./App";
 
+// Suppress harmless ResizeObserver loop error (common in dynamic layouts)
+window.addEventListener("error", (e) => {
+    if (e.message === "ResizeObserver loop completed with undelivered notifications.") {
+        e.stopImmediatePropagation();
+    }
+});
+
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "../routes/error-page";
 import Page from "../components/Local/page";
