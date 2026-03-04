@@ -1,12 +1,15 @@
 import * as ReactDOM from "react-dom/client";
 import App from "./App";
 
-// Suppress harmless ResizeObserver loop error (common in dynamic layouts)
+// Suppress harmless ResizeObserver loop error before webpack-dev-server's overlay catches it
+const resizeObserverErr = "ResizeObserver loop completed with undelivered notifications.";
 window.addEventListener("error", (e) => {
-    if (e.message === "ResizeObserver loop completed with undelivered notifications.") {
+    if (e.message === resizeObserverErr) {
         e.stopImmediatePropagation();
+        e.stopPropagation();
+        e.preventDefault();
     }
-});
+}, true);  // capture phase — runs before webpack-dev-server's bubble-phase handler
 
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "../routes/error-page";
