@@ -32,7 +32,7 @@ FUNCTIONAL_KEYS = {
     'brightness_down', 'brightness_up', 'abnt_c1', 'abnt_c2', 'ax', 'numpad_comma', 'eject'
     }
 
-TYPING_MERGE_THRESHOLD = 2.0  # max seconds between keystrokes to merge Type actions
+TYPING_MERGE_THRESHOLD = 1.5  # max seconds between keystrokes to merge Type actions
 TYPING_MERGE_THRESHOLD_AFTER_ENTER = 0.5  # shorter threshold after Enter — keeps terminal
                                            # commands separate while still merging rapid
                                            # Enter keystrokes in text editors / documents
