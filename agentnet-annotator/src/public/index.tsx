@@ -1,15 +1,18 @@
 import * as ReactDOM from "react-dom/client";
 import App from "./App";
 
-// Suppress harmless ResizeObserver loop error before webpack-dev-server's overlay catches it
-const resizeObserverErr = "ResizeObserver loop completed with undelivered notifications.";
-window.addEventListener("error", (e) => {
-    if (e.message === resizeObserverErr) {
-        e.stopImmediatePropagation();
-        e.stopPropagation();
-        e.preventDefault();
+// Suppress harmless ResizeObserver loop error by wrapping the callback
+// in requestAnimationFrame, which prevents the browser from ever firing
+// the "loop completed" error. This is safe and does not interfere with
+// any other error handling.
+const _RO = window.ResizeObserver;
+window.ResizeObserver = class extends _RO {
+    constructor(cb: ResizeObserverCallback) {
+        super((entries, observer) => {
+            requestAnimationFrame(() => cb(entries, observer));
+        });
     }
-}, true);  // capture phase — runs before webpack-dev-server's bubble-phase handler
+};
 
 import { createHashRouter, RouterProvider } from "react-router-dom";
 import ErrorPage from "../routes/error-page";
