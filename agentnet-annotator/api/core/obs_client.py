@@ -70,7 +70,7 @@ def open_obs() -> subprocess.Popen:
             try:
                 os.chdir(os.path.dirname(obs_path))
                 obs_executable = os.path.basename(obs_path)
-                subprocess.Popen([obs_executable, "--minimize-to-tray"])
+                subprocess.Popen([obs_executable, "--startreplaybuffer", "--minimize-to-tray"])
             finally:
                 os.chdir(original_dir)
     except:
@@ -188,20 +188,11 @@ class OBSClient:
         self.req_client.set_profile_parameter("SimpleOutput", "RecFormat2", "mp4")
         self.req_client.set_profile_parameter("AdvOut", "RecFormat2", "mp4")
 
-        # Use a lower bitrate for screen recording (text/UI is simpler than video).
-        # Cap at 2500 kbps for 1080p — enough quality, ~1.1 GB/hour instead of ~3.5 GB/hour.
-        max_bitrate = 2500
-        bitrate = min(
-            int(_get_bitrate_mbps(base_width, base_height, fps=fps) * 1000 / 50) * 50,
-            max_bitrate,
-        )
+        bitrate = int(_get_bitrate_mbps(base_width, base_height, fps=fps) * 1000 / 50) * 50
         self.req_client.set_profile_parameter("SimpleOutput", "VBitrate", str(bitrate))
-        logger.info(f"OBSClient: recording bitrate = {bitrate} kbps")
-
-        # "Small" quality uses re-encoding (more CPU/memory). "Stream" quality
-        # uses the same encoder as streaming — lighter and still good for screen
-        # capture. Both support pause & resume.
-        self.req_client.set_profile_parameter("SimpleOutput", "RecQuality", "Stream")
+        
+        # do this in order to get pause & resume
+        self.req_client.set_profile_parameter("SimpleOutput", "RecQuality", "Small")
 
 
         self.req_client.set_profile_parameter("SimpleOutput", "FilePath", recording_path)
@@ -241,15 +232,6 @@ class OBSClient:
             pass
 
     def start_recording(self):
-        # Stop replay buffer if running — it holds a rolling video buffer in
-        # RAM that is not needed during recording and wastes memory.
-        try:
-            status = self.req_client.get_replay_buffer_status()
-            if status.output_active:
-                self.req_client.stop_replay_buffer()
-                logger.info("OBSClient: stopped replay buffer to save memory")
-        except Exception:
-            pass
         self.req_client.start_record()
 
     def stop_recording(self):
