@@ -333,10 +333,17 @@ class Reducer:
                     # last action is not type: add Type
                     self.reduced_actions.append(Type(event))
                 elif self.reduced_actions[-1].action == "type":
-                    # Split into a new Type action if the previous one ended with Enter
+                    # After Enter, use a shorter time gap to decide whether to
+                    # start a new Type action (splits terminal commands but keeps
+                    # rapid Enter in documents merged).
                     last_key = self.reduced_actions[-1].key_names[-1] if self.reduced_actions[-1].key_names else ""
-                    if last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS:
-                        self.reduced_actions.append(Type(event))
+                    prev_ends_with_enter = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
+                    if prev_ends_with_enter:
+                        gap = event["time_stamp"] - self.reduced_actions[-1].end_time
+                        if gap >= TYPING_MERGE_THRESHOLD_AFTER_ENTER:
+                            self.reduced_actions.append(Type(event))
+                        else:
+                            self.reduced_actions[-1].append(event)
                     else:
                         self.reduced_actions[-1].append(event)
                     # logger.warning("{} Apend type {} {}".format(len(self.reduced_actions), idx, event))
@@ -613,11 +620,13 @@ class Reducer:
                         next_action = self.reduced_actions[next_type_idx]
                         time_gap = next_action.start_time - temp_action.end_time
 
-                        # Don't merge across Enter — it's a natural command boundary
+                        # Use a shorter merge threshold after Enter to split
+                        # terminal commands while keeping document typing merged.
                         last_key = temp_action.key_names[-1] if temp_action.key_names else ""
-                        ends_with_split_key = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
+                        ends_with_enter = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
+                        threshold = TYPING_MERGE_THRESHOLD_AFTER_ENTER if ends_with_enter else TYPING_MERGE_THRESHOLD
 
-                        if time_gap < TYPING_MERGE_THRESHOLD and not ends_with_split_key:
+                        if time_gap < threshold:
                             # Merge the next Type action into current
                             if next_action.action == "type":
                                 temp_action.extend(next_action)

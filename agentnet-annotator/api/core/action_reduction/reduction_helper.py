@@ -33,11 +33,11 @@ FUNCTIONAL_KEYS = {
     }
 
 TYPING_MERGE_THRESHOLD = 2.0  # max seconds between keystrokes to merge Type actions
+TYPING_MERGE_THRESHOLD_AFTER_ENTER = 0.5  # shorter threshold after Enter — keeps terminal
+                                           # commands separate while still merging rapid
+                                           # Enter keystrokes in text editors / documents
 
-# Keys that act as natural split points for typing actions.
-# When a Type action ends with one of these, it won't be merged with the
-# next Type action.  This keeps terminal commands (each ending with Enter)
-# as separate steps.
+# Keys that use the shorter merge threshold above.
 TYPING_SPLIT_KEYS = {"enter", "Enter", "return", "Return", "numpad_enter"}
 
 
