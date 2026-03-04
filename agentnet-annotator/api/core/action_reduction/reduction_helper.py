@@ -34,6 +34,12 @@ FUNCTIONAL_KEYS = {
 
 TYPING_MERGE_THRESHOLD = 2.0  # max seconds between keystrokes to merge Type actions
 
+# Keys that act as natural split points for typing actions.
+# When a Type action ends with one of these, it won't be merged with the
+# next Type action.  This keeps terminal commands (each ending with Enter)
+# as separate steps.
+TYPING_SPLIT_KEYS = {"enter", "Enter", "return", "Return", "numpad_enter"}
+
 
 def wrap_func_key(key: str):
     if key in MODIFIED_KEYS:

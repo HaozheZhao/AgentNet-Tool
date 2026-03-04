@@ -333,7 +333,12 @@ class Reducer:
                     # last action is not type: add Type
                     self.reduced_actions.append(Type(event))
                 elif self.reduced_actions[-1].action == "type":
-                    self.reduced_actions[-1].append(event)
+                    # Split into a new Type action if the previous one ended with Enter
+                    last_key = self.reduced_actions[-1].key_names[-1] if self.reduced_actions[-1].key_names else ""
+                    if last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS:
+                        self.reduced_actions.append(Type(event))
+                    else:
+                        self.reduced_actions[-1].append(event)
                     # logger.warning("{} Apend type {} {}".format(len(self.reduced_actions), idx, event))
                     # logger.error(self.reduced_actions[-1].key_names)
                 elif (
@@ -608,7 +613,11 @@ class Reducer:
                         next_action = self.reduced_actions[next_type_idx]
                         time_gap = next_action.start_time - temp_action.end_time
 
-                        if time_gap < TYPING_MERGE_THRESHOLD:
+                        # Don't merge across Enter — it's a natural command boundary
+                        last_key = temp_action.key_names[-1] if temp_action.key_names else ""
+                        ends_with_split_key = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
+
+                        if time_gap < TYPING_MERGE_THRESHOLD and not ends_with_split_key:
                             # Merge the next Type action into current
                             if next_action.action == "type":
                                 temp_action.extend(next_action)
