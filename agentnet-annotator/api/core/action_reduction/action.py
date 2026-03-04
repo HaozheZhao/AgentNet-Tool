@@ -489,7 +489,7 @@ class Type(Action):
         # Store raw keys for debugging (visible in JSONL output)
         self.raw_keys = self.key_names.copy()
 
-        logger.error("transform {}".format(self.key_names))
+        logger.debug("transform {}".format(self.key_names))
 
     def process_video_segment(
         self, start_time, end_time, cap, out, video_attrs, window_attrs
