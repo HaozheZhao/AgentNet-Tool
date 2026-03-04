@@ -1,10 +1,6 @@
 import subprocess
 import threading
-
-import gi
-gi.require_version("Atspi", "2.0")
-from gi.repository import Atspi
-Atspi.init()
+from queue import Queue, Empty
 
 import psutil
 
@@ -14,13 +10,55 @@ from ..logger import logger
 MAX_DEPTH = 30
 MAX_WIDTH = 1024
 
-# AT-SPI / GLib D-Bus is not thread-safe. A reentrant lock serializes all
-# AT-SPI operations so that concurrent calls from A11yListener threads
-# (top-window polling + per-click element capture) do not segfault.
-_atspi_lock = threading.RLock()
+# ── AT-SPI worker thread ─────────────────────────────────────────────
+# GLib / AT-SPI objects have thread affinity: they must be created and
+# accessed from the same thread.  We initialise AT-SPI inside a single
+# long-lived daemon thread and dispatch every operation to it.  This
+# eliminates segfaults caused by cross-thread GLib access.
+
+_work_queue = Queue()       # items: (callable, args, result_queue)
+_ready = threading.Event()  # set once Atspi.init() has finished
+_Atspi = None               # populated by the worker thread
 
 
-# ── helpers ────────────────────────────────────────────────────────────
+def _atspi_worker():
+    """Dedicated thread that owns all AT-SPI / GLib state."""
+    global _Atspi
+    import gi
+    gi.require_version("Atspi", "2.0")
+    from gi.repository import Atspi
+    Atspi.init()
+    _Atspi = Atspi
+    _ready.set()
+
+    while True:
+        func, args, result_q = _work_queue.get()
+        try:
+            result = func(*args)
+            result_q.put(("ok", result))
+        except Exception as e:
+            result_q.put(("err", e))
+
+
+_thread = threading.Thread(target=_atspi_worker, daemon=True)
+_thread.start()
+_ready.wait()
+
+
+def _run(func, *args, timeout=15):
+    """Run *func* on the AT-SPI worker thread and return the result."""
+    rq = Queue(maxsize=1)
+    _work_queue.put((func, args, rq))
+    try:
+        status, value = rq.get(timeout=timeout)
+    except Empty:
+        raise TimeoutError(f"AT-SPI call {func.__name__} timed out after {timeout}s")
+    if status == "err":
+        raise value
+    return value
+
+
+# ── helpers (run ONLY on the worker thread) ───────────────────────────
 
 def _get_pid_from_xdotool():
     """Get active window PID via xdotool."""
@@ -41,8 +79,7 @@ def _find_active_window():
 
     Returns (app_accessible, window_accessible) or (None, None).
     """
-    # Strategy 1: Check STATE_ACTIVE / STATE_FOCUSED on windows
-    desktop = Atspi.get_desktop(0)
+    desktop = _Atspi.get_desktop(0)
     for i in range(desktop.get_child_count()):
         try:
             app = desktop.get_child_at_index(i)
@@ -53,12 +90,12 @@ def _find_active_window():
                 if win is None:
                     continue
                 state_set = win.get_state_set()
-                if state_set.contains(Atspi.StateType.ACTIVE) or state_set.contains(Atspi.StateType.FOCUSED):
+                if state_set.contains(_Atspi.StateType.ACTIVE) or state_set.contains(_Atspi.StateType.FOCUSED):
                     return app, win
         except Exception:
             continue
 
-    # Strategy 2: Use xdotool to get PID, then find app by PID
+    # Fallback: xdotool PID
     pid = _get_pid_from_xdotool()
     if pid is not None:
         for i in range(desktop.get_child_count()):
@@ -71,7 +108,6 @@ def _find_active_window():
                 except Exception:
                     app_pid = -1
                 if app_pid == pid:
-                    # Return first window of matching app
                     if app.get_child_count() > 0:
                         win = app.get_child_at_index(0)
                         if win is not None:
@@ -83,15 +119,12 @@ def _find_active_window():
 
 
 def _get_extents(node):
-    """Get bounding rectangle of an accessible node.
-
-    Returns dict with left/top/right/bottom or None.
-    """
+    """Get bounding rectangle of an accessible node."""
     try:
         component = node.get_component_iface()
         if component is None:
             return None
-        ext = component.get_extents(Atspi.CoordType.SCREEN)
+        ext = component.get_extents(_Atspi.CoordType.SCREEN)
         if ext.width <= 0 and ext.height <= 0:
             return None
         return {
@@ -105,11 +138,7 @@ def _get_extents(node):
 
 
 def _get_deepest_at_point(node, x, y):
-    """Recursively find the deepest accessible element at (x, y).
-
-    AT-SPI's get_accessible_at_point only returns a direct child,
-    so we must drill down repeatedly to find the leaf element.
-    """
+    """Recursively drill to the deepest accessible element at (x, y)."""
     component = node.get_component_iface()
     if component is None:
         return node
@@ -119,7 +148,7 @@ def _get_deepest_at_point(node, x, y):
         comp = current.get_component_iface()
         if comp is None:
             break
-        child = comp.get_accessible_at_point(x, y, Atspi.CoordType.SCREEN)
+        child = comp.get_accessible_at_point(x, y, _Atspi.CoordType.SCREEN)
         if child is None or child == current:
             break
         current = child
@@ -127,94 +156,8 @@ def _get_deepest_at_point(node, x, y):
     return current
 
 
-# ── public API (matches _windows.py interface) ────────────────────────
-
-
-def get_top_window_name() -> str:
-    """Get the process name of the active window."""
-    with _atspi_lock:
-        try:
-            app, win = _find_active_window()
-            if app is not None:
-                name = app.get_name()
-                if name:
-                    return name
-        except Exception:
-            pass
-
-    # Fallback: xdotool + psutil (no lock needed, no AT-SPI)
-    try:
-        pid = _get_pid_from_xdotool()
-        if pid:
-            proc = psutil.Process(pid)
-            return proc.name().split(".", 1)[0]
-    except Exception:
-        pass
-
-    return None
-
-
-def get_top_window() -> dict:
-    """Get info dict for the active window."""
-    with _atspi_lock:
-        app, win = _find_active_window()
-        if win is None:
-            return None
-        ext = _get_extents(win)
-        return {
-            "title": win.get_name() or "",
-            "app_name": app.get_name() if app else "",
-            "bounds": ext,
-        }
-
-
-def get_active_window_state(read_window_data: bool = True) -> dict:
-    """Get the state of the active window.
-
-    Returns dict matching the format expected by __init__.py for
-    sys.platform == "linux" (returned directly, same as win32 path).
-    """
-    with _atspi_lock:
-        app, win = _find_active_window()
-        if win is None:
-            return None
-
-        title_parts = []
-        if app:
-            app_name = app.get_name()
-            if app_name:
-                title_parts.append(app_name)
-        win_name = win.get_name()
-        if win_name:
-            title_parts.append(win_name)
-        title = " ".join(title_parts) if title_parts else ""
-
-        ext = _get_extents(win)
-        left = ext["left"] if ext else 0
-        top = ext["top"] if ext else 0
-        width = (ext["right"] - ext["left"]) if ext else 0
-        height = (ext["bottom"] - ext["top"]) if ext else 0
-
-        try:
-            pid = app.get_process_id() if app else 0
-        except Exception:
-            pid = 0
-
-        return {
-            "title": title,
-            "left": left,
-            "top": top,
-            "width": width,
-            "height": height,
-            "window_id": pid,
-        }
-
-
 def _traverse_accessible(node, depth=0):
-    """Recursively build an a11y tree dict matching the Windows format.
-
-    Keys: Name, ControlType, BoundingRectangle, Depth, Children
-    """
+    """Recursively build an a11y tree dict matching the Windows format."""
     if node is None:
         return None
 
@@ -233,7 +176,6 @@ def _traverse_accessible(node, depth=0):
     except Exception:
         description = ""
 
-    # Try to get text value for text elements
     value = ""
     try:
         text_iface = node.get_text_iface()
@@ -275,8 +217,79 @@ def _traverse_accessible(node, depth=0):
     return tree
 
 
-def get_accessibility_tree():
-    """Get the full a11y tree of the active window."""
+# ── internal functions dispatched to worker thread ────────────────────
+
+def _do_get_top_window_name():
+    try:
+        app, win = _find_active_window()
+        if app is not None:
+            name = app.get_name()
+            if name:
+                return name
+    except Exception:
+        pass
+
+    # Fallback: xdotool + psutil (no AT-SPI)
+    try:
+        pid = _get_pid_from_xdotool()
+        if pid:
+            proc = psutil.Process(pid)
+            return proc.name().split(".", 1)[0]
+    except Exception:
+        pass
+
+    return None
+
+
+def _do_get_top_window():
+    app, win = _find_active_window()
+    if win is None:
+        return None
+    ext = _get_extents(win)
+    return {
+        "title": win.get_name() or "",
+        "app_name": app.get_name() if app else "",
+        "bounds": ext,
+    }
+
+
+def _do_get_active_window_state():
+    app, win = _find_active_window()
+    if win is None:
+        return None
+
+    title_parts = []
+    if app:
+        app_name = app.get_name()
+        if app_name:
+            title_parts.append(app_name)
+    win_name = win.get_name()
+    if win_name:
+        title_parts.append(win_name)
+    title = " ".join(title_parts) if title_parts else ""
+
+    ext = _get_extents(win)
+    left = ext["left"] if ext else 0
+    top = ext["top"] if ext else 0
+    width = (ext["right"] - ext["left"]) if ext else 0
+    height = (ext["bottom"] - ext["top"]) if ext else 0
+
+    try:
+        pid = app.get_process_id() if app else 0
+    except Exception:
+        pid = 0
+
+    return {
+        "title": title,
+        "left": left,
+        "top": top,
+        "width": width,
+        "height": height,
+        "window_id": pid,
+    }
+
+
+def _do_get_accessibility_tree():
     tree = {}
     tree_status = {
         "complete": True,
@@ -284,77 +297,92 @@ def get_accessibility_tree():
         "closed": False,
     }
 
-    with _atspi_lock:
-        try:
-            state_before = get_active_window_state()
-            app, win = _find_active_window()
-            if win is None:
-                tree_status["complete"] = False
-                tree_status["closed"] = True
-                tree.update(tree_status)
-                return tree
-
-            tree = _traverse_accessible(win, depth=0)
-
-            state_after = get_active_window_state()
-            if state_before != state_after:
-                tree_status["complete"] = False
-                tree_status["switched"] = True
-
-        except Exception as e:
+    try:
+        state_before = _do_get_active_window_state()
+        app, win = _find_active_window()
+        if win is None:
             tree_status["complete"] = False
             tree_status["closed"] = True
-            logger.exception(f"get_accessibility_tree error: {str(e)}")
+            tree.update(tree_status)
+            return tree
+
+        tree = _traverse_accessible(win, depth=0)
+
+        state_after = _do_get_active_window_state()
+        if state_before != state_after:
+            tree_status["complete"] = False
+            tree_status["switched"] = True
+
+    except Exception as e:
+        tree_status["complete"] = False
+        tree_status["closed"] = True
+        logger.exception(f"get_accessibility_tree error: {str(e)}")
 
     tree.update(tree_status)
     return tree
 
 
-def get_active_element_state(x, y):
-    """Get the a11y tree of the element at the given coordinates.
-
-    Finds the deepest element at (x,y) by recursively drilling down,
-    then builds a subtree from that element to provide context for scoring.
-    Also traverses upward to include the parent chain for better matching.
-    """
-    with _atspi_lock:
-        try:
-            app, win = _find_active_window()
-            if win is None:
-                logger.info(f"get_active_element_state: no active window found for ({x}, {y})")
-                return {}
-
-            # Find the deepest element at (x, y)
-            deepest = _get_deepest_at_point(win, x, y)
-
-            # Build a subtree: walk up a few levels to get context,
-            # then traverse down from there
-            context_node = deepest
-            for _ in range(3):
-                try:
-                    parent = context_node.get_parent()
-                    if parent is None or parent.get_role() == Atspi.Role.DESKTOP_FRAME:
-                        break
-                    context_node = parent
-                except Exception:
-                    break
-
-            tree = _traverse_accessible(context_node)
-            if tree and (tree.get("Name") or tree.get("Children")):
-                logger.info(f"get_active_element_state: captured element at ({x},{y}): Name='{tree.get('Name')}', ControlType='{tree.get('ControlType')}'")
-                return tree
-
-            # Fallback: return the whole window tree
-            logger.info(f"get_active_element_state: falling back to window tree for ({x},{y})")
-            return _traverse_accessible(win)
-
-        except Exception as e:
-            logger.warning(f"get_active_element_state error at ({x},{y}): {e}")
+def _do_get_active_element_state(x, y):
+    try:
+        app, win = _find_active_window()
+        if win is None:
+            logger.info(f"get_active_element_state: no active window found for ({x}, {y})")
             return {}
+
+        deepest = _get_deepest_at_point(win, x, y)
+
+        context_node = deepest
+        for _ in range(3):
+            try:
+                parent = context_node.get_parent()
+                if parent is None or parent.get_role() == _Atspi.Role.DESKTOP_FRAME:
+                    break
+                context_node = parent
+            except Exception:
+                break
+
+        tree = _traverse_accessible(context_node)
+        if tree and (tree.get("Name") or tree.get("Children")):
+            logger.info(f"get_active_element_state: captured element at ({x},{y}): Name='{tree.get('Name')}', ControlType='{tree.get('ControlType')}'")
+            return tree
+
+        logger.info(f"get_active_element_state: falling back to window tree for ({x},{y})")
+        return _traverse_accessible(win)
+
+    except Exception as e:
+        logger.warning(f"get_active_element_state error at ({x},{y}): {e}")
+        return {}
+
+
+# ── public API (matches _windows.py interface) ────────────────────────
+# Every public function dispatches to the worker thread via _run().
+
+
+def get_top_window_name() -> str:
+    return _run(_do_get_top_window_name)
+
+
+def get_top_window() -> dict:
+    return _run(_do_get_top_window)
+
+
+def get_active_window_state(read_window_data: bool = True) -> dict:
+    return _run(_do_get_active_window_state)
+
+
+def get_accessibility_tree():
+    return _run(_do_get_accessibility_tree)
+
+
+def get_active_element_state(x, y):
+    return _run(_do_get_active_element_state, x, y)
 
 
 def parse_element(element, x: float, y: float):
-    """Score the element tree and find the best matching node."""
+    """Score the element tree and find the best matching node.
+
+    Pure Python dict operations — no AT-SPI calls, runs on caller thread.
+    """
     try:
         if not element or not isinstance(element, dict):
             return None
