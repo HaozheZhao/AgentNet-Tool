@@ -18,9 +18,14 @@ class MetadataManager:
         if "node" in self.metadata:
             del self.metadata["node"]
 
-        main_monitor = get_monitors()[0]
-        self.metadata["screen_width"] = main_monitor.width
-        self.metadata["screen_height"] = main_monitor.height
+        monitors = get_monitors()
+        if monitors:
+            main_monitor = monitors[0]
+            self.metadata["screen_width"] = main_monitor.width
+            self.metadata["screen_height"] = main_monitor.height
+        else:
+            self.metadata["screen_width"] = 1920
+            self.metadata["screen_height"] = 1080
 
         try:
             match self.metadata["system"]:
@@ -42,7 +47,7 @@ class MetadataManager:
                 case "Linux":
                     with open("/sys/devices/virtual/dmi/id/product_name", "r") as f:
                         self.metadata["model"] = f.read().strip()
-        except:
+        except Exception:
             self.metadata["model"] = "Unknown"
 
         self.metadata["scroll_direction"] = -1 if natural_scrolling else 1

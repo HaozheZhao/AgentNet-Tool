@@ -111,6 +111,8 @@ def get_dock_meta() -> dict:
         for win in windows
         if win.get("kCGWindowName") == "Dock"
     ]
+    if not dock_info:
+        return None
     return dock_info[0]
 
 
@@ -447,9 +449,11 @@ def get_active_window_state() -> dict | None:
     # pywinctl performance on macOS is unusable, see:
     # https://github.com/Kalmat/PyWinCtl/issues/29
     meta = get_active_window_meta()
+    if not meta:
+        return None
     title_parts = [
-        meta["kCGWindowOwnerName"],
-        meta["kCGWindowName"],
+        meta.get("kCGWindowOwnerName", ""),
+        meta.get("kCGWindowName", ""),
     ]
     title_parts = [part for part in title_parts if part]
     title = " ".join(title_parts)
@@ -482,6 +486,8 @@ def get_active_element_state(x: int, y: int) -> dict:
     """
     try:
         dock_meta = get_dock_meta()
+        if not dock_meta:
+            raise ValueError("Dock not found")
         pid = dock_meta["kCGWindowOwnerPID"]
         app = oa_atomacos._a11y.AXUIElement.from_pid(pid)
         el = app.get_element_at_position(x, y)
@@ -524,15 +530,25 @@ def get_accessibility_tree():
         "switched": False,
         "closed": False,
     }
+    tree = {}
     switched = False
     try:
         top_window_key_before = get_active_window_state()
         meta = get_active_window_meta()
+        if meta is None:
+            tree_status["complete"] = False
+            tree_status["closed"] = True
+            tree.update(tree_status)
+            return tree
         tree, switched = get_window_data(meta)
+        if tree is None:
+            tree = {}
     except Exception as e:
         tree_status["complete"] = False
         tree_status["closed"] = True
         logger.exception(f"get_accessibility_tree error: {str(e)}")
+        tree.update(tree_status)
+        return tree
 
     if switched:
         tree_status["complete"] = False

@@ -376,6 +376,8 @@ def annotate_task(recording_name, socketservice):
 
     # edit full video
     old_video_path = find_mp4(folder_path)
+    if not old_video_path:
+        return jsonify({"error": "No video file found in recording"}), 500
     cut_video(
         old_video_path=os.path.join(folder_path, old_video_path),
         new_video_path=new_folder_path,
@@ -626,6 +628,8 @@ def get_full_video(recording_name):  # TODO: check if delete files affect
 
     # fetch single video
     video_name = find_mp4(folder_path)
+    if not video_name:
+        return jsonify({"error": "No video file found in recording"}), 404
     try:
         return (
             jsonify(

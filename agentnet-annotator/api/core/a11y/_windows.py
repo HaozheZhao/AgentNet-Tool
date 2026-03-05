@@ -17,6 +17,8 @@ from ..logger import logger
 from screeninfo import get_monitors
 
 
+screenWidth = 1920
+screenHeight = 1080
 for monitor in get_monitors():
     screenWidth = monitor.width
     screenHeight = monitor.height

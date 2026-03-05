@@ -81,6 +81,11 @@ const startFlaskServer = (): void => {
   flaskProcess.on("close", (code) => {
     console.log(`Flask process exited with code ${code}`);
   });
+
+  flaskProcess.on("error", (err) => {
+    console.error(`Flask process spawn error: ${err}`);
+    flaskProcess = null;
+  });
 };
 
 const stopFlaskServer = (): void => {
@@ -191,10 +196,14 @@ app.on("window-all-closed", () => {
 });
 
 app.on("will-quit", async () => {
-  if (process.platform === "win32") {
-    await kill_process(5328);
+  try {
+    if (process.platform === "win32") {
+      await kill_process(5328);
+    }
+    stopFlaskServer();
+  } catch (err) {
+    console.error(`Error during shutdown: ${err}`);
   }
-  stopFlaskServer();
   globalShortcut.unregisterAll();
 });
 

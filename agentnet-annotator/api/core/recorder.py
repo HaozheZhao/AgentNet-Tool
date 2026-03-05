@@ -192,35 +192,38 @@ class Recorder(QThread):
         self._last_flush_time = time.time()
 
         while self._is_recording:
-            event = self.event_queue.get()
-            event["event_idx"] = self.event_count
-            self.event_count += 1
+            try:
+                event = self.event_queue.get()
+                event["event_idx"] = self.event_count
+                self.event_count += 1
 
-            self.events_file.write(json.dumps(event) + "\n")
+                self.events_file.write(json.dumps(event) + "\n")
 
-            if self.gen_window:
-                axtree_queue = self.keyframe_detector.axtree_queue
-                if not axtree_queue.empty():
-                    logger.info("write_axtree_data")
-                    write_encrypt_line(self.a11y_file, axtree_queue.get())
+                if self.gen_window:
+                    axtree_queue = self.keyframe_detector.axtree_queue
+                    if not axtree_queue.empty():
+                        logger.info("write_axtree_data")
+                        write_encrypt_line(self.a11y_file, axtree_queue.get())
 
-            if self.gen_element:
-                element_queue = self.a11y_listener.element_queue
-                if not element_queue.empty():
-                    logger.info("write_element_data")
-                    write_encrypt_line(self.element_file, element_queue.get())
+                if self.gen_element:
+                    element_queue = self.a11y_listener.element_queue
+                    if not element_queue.empty():
+                        logger.info("write_element_data")
+                        write_encrypt_line(self.element_file, element_queue.get())
 
-            if hasattr(self, 'a11y_listener'):
-                top_window_queue = self.a11y_listener.top_window_queue
-                if not top_window_queue.empty():
-                    write_encrypt_line(self.top_window_file,
-                                    top_window_queue.get())
+                if hasattr(self, 'a11y_listener'):
+                    top_window_queue = self.a11y_listener.top_window_queue
+                    if not top_window_queue.empty():
+                        write_encrypt_line(self.top_window_file,
+                                        top_window_queue.get())
 
-            # Flush all files every 5 seconds to prevent data loss on crash
-            now = time.time()
-            if now - self._last_flush_time >= 5:
-                self._flush_all_files()
-                self._last_flush_time = now
+                # Flush all files every 5 seconds to prevent data loss on crash
+                now = time.time()
+                if now - self._last_flush_time >= 5:
+                    self._flush_all_files()
+                    self._last_flush_time = now
+            except Exception as e:
+                logger.error(f"Recorder: error processing event: {e}")
 
         logger.info("Recorder: run done.")
 
@@ -325,6 +328,10 @@ class Recorder(QThread):
                 self.a11y_file.close()
             if self.gen_element:
                 self.element_file.close()
+            if hasattr(self, 'html_file'):
+                self.html_file.close()
+            if hasattr(self, 'top_window_file'):
+                self.top_window_file.close()
 
             # self.recording_stopped.emit()
         logger.info("Recorder: stop_recording done.")

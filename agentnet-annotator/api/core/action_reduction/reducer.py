@@ -89,6 +89,34 @@ class Reducer:
         self.flatten = False
 
         self.reduce_status = {}
+        self._top_window_data = []  # loaded during reduce_pipeline
+
+    def _load_top_window_data(self):
+        """Load top_window.jsonl for terminal detection during type splitting."""
+        tw_path = os.path.join(self.recording_path, "top_window.jsonl")
+        if os.path.exists(tw_path):
+            try:
+                self._top_window_data = read_encrypted_jsonl(tw_path)
+            except Exception:
+                self._top_window_data = []
+
+    def _is_terminal_at(self, timestamp):
+        """Check if the active window at the given timestamp is a terminal."""
+        if not self._top_window_data:
+            return False
+        # Find the most recent top_window entry before this timestamp
+        best = None
+        for entry in self._top_window_data:
+            if entry["time_stamp"] <= timestamp:
+                best = entry
+            else:
+                break
+        if best is None:
+            return False
+        name = (best.get("top_window_name") or "").lower()
+        # Strip common suffixes like .exe, path prefixes
+        name_base = name.rsplit(".", 1)[0].rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+        return name_base in TERMINAL_APP_NAMES or name in TERMINAL_APP_NAMES
 
     def compress(self, events: List[Dict]):
         """
@@ -333,17 +361,22 @@ class Reducer:
                     # last action is not type: add Type
                     self.reduced_actions.append(Type(event))
                 elif self.reduced_actions[-1].action == "type":
-                    # After Enter, use a shorter time gap to decide whether to
-                    # start a new Type action (splits terminal commands but keeps
-                    # rapid Enter in documents merged).
+                    # After Enter, decide whether to start a new Type action.
+                    # In terminal apps: always split on Enter.
+                    # In other apps: split only if time gap >= threshold.
                     last_key = self.reduced_actions[-1].key_names[-1] if self.reduced_actions[-1].key_names else ""
                     prev_ends_with_enter = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
                     if prev_ends_with_enter:
-                        gap = event["time_stamp"] - self.reduced_actions[-1].end_time
-                        if gap >= TYPING_MERGE_THRESHOLD_AFTER_ENTER:
+                        in_terminal = self._is_terminal_at(event["time_stamp"])
+                        if in_terminal:
+                            # Terminal: always split after Enter
                             self.reduced_actions.append(Type(event))
                         else:
-                            self.reduced_actions[-1].append(event)
+                            gap = event["time_stamp"] - self.reduced_actions[-1].end_time
+                            if gap >= TYPING_MERGE_THRESHOLD_AFTER_ENTER:
+                                self.reduced_actions.append(Type(event))
+                            else:
+                                self.reduced_actions[-1].append(event)
                     else:
                         self.reduced_actions[-1].append(event)
                     # logger.warning("{} Apend type {} {}".format(len(self.reduced_actions), idx, event))
@@ -620,11 +653,17 @@ class Reducer:
                         next_action = self.reduced_actions[next_type_idx]
                         time_gap = next_action.start_time - temp_action.end_time
 
-                        # Use a shorter merge threshold after Enter to split
-                        # terminal commands while keeping document typing merged.
+                        # After Enter: in terminal apps always keep separate;
+                        # in other apps use shorter merge threshold.
                         last_key = temp_action.key_names[-1] if temp_action.key_names else ""
                         ends_with_enter = last_key.lower() in TYPING_SPLIT_KEYS or last_key in TYPING_SPLIT_KEYS
-                        threshold = TYPING_MERGE_THRESHOLD_AFTER_ENTER if ends_with_enter else TYPING_MERGE_THRESHOLD
+                        if ends_with_enter and self._is_terminal_at(temp_action.end_time):
+                            # Terminal: never merge across Enter
+                            threshold = 0
+                        elif ends_with_enter:
+                            threshold = TYPING_MERGE_THRESHOLD_AFTER_ENTER
+                        else:
+                            threshold = TYPING_MERGE_THRESHOLD
 
                         if time_gap < threshold:
                             # Merge the next Type action into current
@@ -1050,6 +1089,69 @@ class Reducer:
 
         self.reduced_actions = actions
 
+    def _split_terminal_types(self):
+        """Split Type actions at Enter boundaries when in a terminal app.
+
+        If a Type action contains Enter followed by more keys and the active
+        window at that point is a terminal, split it into separate actions:
+        one ending with Enter and a new one starting with the keys after it.
+        """
+        if not self._top_window_data:
+            return
+
+        new_actions = []
+        for action in self.reduced_actions:
+            if action.action != "type" or len(action.key_names) <= 1:
+                new_actions.append(action)
+                continue
+
+            # Find Enter positions (not at the very end — those don't need splitting)
+            enter_positions = []
+            for i, key in enumerate(action.key_names[:-1]):
+                if key.lower() in TYPING_SPLIT_KEYS or key in TYPING_SPLIT_KEYS:
+                    # Check if the key AFTER this Enter was typed in a terminal
+                    next_ts = action.time_trace[i + 1] if i + 1 < len(action.time_trace) else action.end_time
+                    if self._is_terminal_at(next_ts):
+                        enter_positions.append(i)
+
+            if not enter_positions:
+                new_actions.append(action)
+                continue
+
+            # Split at each Enter position
+            prev_start = 0
+            for enter_idx in enter_positions:
+                # Segment: prev_start .. enter_idx (inclusive)
+                seg_keys = action.key_names[prev_start:enter_idx + 1]
+                seg_times = action.time_trace[prev_start:enter_idx + 1]
+                if seg_keys:
+                    seg_action = Type.__new__(Type)
+                    seg_action.__dict__.update(action.__dict__)
+                    seg_action.key_names = list(seg_keys)
+                    seg_action.time_trace = list(seg_times)
+                    seg_action.start_time = seg_times[0]
+                    seg_action.end_time = seg_times[-1] + 0.2
+                    seg_action.children = []
+                    seg_action.complete = True
+                    new_actions.append(seg_action)
+                prev_start = enter_idx + 1
+
+            # Remaining keys after the last Enter
+            if prev_start < len(action.key_names):
+                seg_keys = action.key_names[prev_start:]
+                seg_times = action.time_trace[prev_start:]
+                seg_action = Type.__new__(Type)
+                seg_action.__dict__.update(action.__dict__)
+                seg_action.key_names = list(seg_keys)
+                seg_action.time_trace = list(seg_times)
+                seg_action.start_time = seg_times[0]
+                seg_action.end_time = seg_times[-1] + 0.2
+                seg_action.children = []
+                seg_action.complete = True
+                new_actions.append(seg_action)
+
+        self.reduced_actions = new_actions
+
     def reduce_pipeline(self):
         try:
             start_time = time.perf_counter()
@@ -1070,8 +1172,10 @@ class Reducer:
             ):
                 os.remove(os.path.join(recording_path, "reduced_events_complete.jsonl"))
 
+            self._load_top_window_data()
             self.compress(events)
             self.reduce_all()
+            self._split_terminal_types()
             self.transform()
             self.finish()
 
@@ -1090,8 +1194,7 @@ class Reducer:
 
             if self.generate_window_a11y:
                 self.match_axtree()
-            from platform import system
-            if self.generate_element_a11y and system() != "Linux":
+            if self.generate_element_a11y:
                 self.match_element()
 
             self.complete_dump(recording_path)

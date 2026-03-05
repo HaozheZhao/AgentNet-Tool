@@ -73,7 +73,7 @@ def open_obs() -> subprocess.Popen:
                 subprocess.Popen([obs_executable, "--startreplaybuffer", "--minimize-to-tray"])
             finally:
                 os.chdir(original_dir)
-    except:
+    except Exception:
         raise Exception("Failed to find OBS, please open OBS manually.")
 
 class OBSAlreadyRecordingError(Exception):

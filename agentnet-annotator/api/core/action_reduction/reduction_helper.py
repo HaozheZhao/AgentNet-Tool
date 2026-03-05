@@ -33,12 +33,30 @@ FUNCTIONAL_KEYS = {
     }
 
 TYPING_MERGE_THRESHOLD = 1.5  # max seconds between keystrokes to merge Type actions
-TYPING_MERGE_THRESHOLD_AFTER_ENTER = 0.5  # shorter threshold after Enter — keeps terminal
+TYPING_MERGE_THRESHOLD_AFTER_ENTER = 0.3  # shorter threshold after Enter — keeps terminal
                                            # commands separate while still merging rapid
                                            # Enter keystrokes in text editors / documents
 
 # Keys that use the shorter merge threshold above.
 TYPING_SPLIT_KEYS = {"enter", "Enter", "return", "Return", "numpad_enter"}
+
+# Terminal emulator app names — Enter always splits typing in these apps.
+# Matched case-insensitively against top_window_name.
+TERMINAL_APP_NAMES = {
+    # Linux
+    "gnome-terminal", "gnome-terminal-server", "konsole", "xterm", "alacritty",
+    "kitty", "tilix", "terminator", "xfce4-terminal", "lxterminal", "st",
+    "urxvt", "rxvt", "sakura", "termite", "wezterm", "foot", "yakuake",
+    "guake", "tilda", "hyper", "tabby", "cool-retro-term",
+    # macOS
+    "terminal", "iterm2", "iterm",
+    # Windows
+    "cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh", "pwsh.exe",
+    "windowsterminal", "windows terminal", "conemu", "conemu64",
+    "cmder", "mintty", "git bash", "wt", "wt.exe",
+    # Generic / SSH
+    "ssh", "putty", "mobaxterm", "securecrt",
+}
 
 
 def wrap_func_key(key: str):

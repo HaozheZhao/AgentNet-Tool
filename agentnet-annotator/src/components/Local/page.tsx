@@ -487,15 +487,15 @@ const Page = () => {
 
     useEffect(() => {
         if (stepperRef.current) {
-            const stepperHeight = stepperRef.current.offsetHeight;
-            const stepHeight =
-                stepperRef.current.scrollHeight / eventsList.length;
-            const offset =
-                stepHeight * activeStep - stepperHeight / 2 + stepHeight / 2;
-            stepperRef.current.scrollTo({
-                top: offset,
-                behavior: "smooth",
-            });
+            const activeEl = stepperRef.current.querySelector(
+                `[data-step-index="${activeStep}"]`
+            );
+            if (activeEl) {
+                activeEl.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                });
+            }
         }
         eventsListLengthRef.current = eventsList.length;
         if (
@@ -563,6 +563,14 @@ const Page = () => {
 
     const handleWheel = useCallback(
         (event: React.WheelEvent<HTMLDivElement>) => {
+            // Allow native scroll inside step content blocks
+            const target = event.target as HTMLElement;
+            const stepBox = target.closest('[data-step-content]');
+            if (stepBox && stepBox.scrollHeight > stepBox.clientHeight) {
+                // Content is scrollable — let native scroll work inside it
+                return;
+            }
+
             event.preventDefault();
             setScrollDelta((prev) => prev + event.deltaY);
 
@@ -1824,13 +1832,13 @@ const Page = () => {
                             sx={{
                                 height: "72vh",
                                 position: "relative",
-                                overflowY: "hidden",
+                                overflowY: "auto",
                             }}
                         >
                             <Box
                                 sx={{
                                     height: "100%",
-                                    overflowY: "hidden",
+                                    overflowY: "auto",
                                     position: "relative",
                                 }}
                                 onWheel={handleWheel}
@@ -1841,7 +1849,7 @@ const Page = () => {
                                     sx={{
                                         m: 2,
                                         pt: 1,
-                                        pb: 2,
+                                        pb: "50vh",
                                         "--Stepper-verticalGap": "1.5rem",
                                         "--StepIndicator-size": "1.5rem",
                                         "--Step-gap": "0.75rem",
@@ -1878,6 +1886,7 @@ const Page = () => {
                                     {eventsList.map((event, index: any) => (
                                         <Step
                                             key={index}
+                                            data-step-index={index}
                                             completed={index < activeStep}
                                             active={index === activeStep}
                                             disabled={index > activeStep}
@@ -1934,6 +1943,7 @@ const Page = () => {
                                                 size="sm"
                                             >
                                                 <Box
+                                                    data-step-content
                                                     onClick={() =>
                                                         setActiveStep(index)
                                                     }
@@ -1946,7 +1956,8 @@ const Page = () => {
                                                         textAlign: "left",
                                                         p: 1,
                                                         width: "100%",
-                                                        overflow: "hidden",
+                                                        maxHeight: index === activeStep ? "40vh" : "8rem",
+                                                        overflowY: "auto",
                                                     }}
                                                     className={
                                                         activeStep === index

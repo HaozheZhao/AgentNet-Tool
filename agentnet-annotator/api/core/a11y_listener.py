@@ -68,7 +68,9 @@ class A11yListener:
     def stop(self):
         self.running = False
         self.mouse_listener.stop()
-        self.top_window_getter.join()
+        self.top_window_getter.join(timeout=5)
+        if self.top_window_getter.is_alive():
+            logger.warning("a11y_listener: top_window_getter did not stop in time")
 
     @property
     def element_queue(self):

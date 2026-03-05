@@ -73,12 +73,12 @@ class KeyFrameDetector:
         # Don't save axtree when using browser
         if system() == "Darwin":
             top_window = get_top_window()
-            if top_window["kCGWindowOwnerName"] in BROWSER_NAME_LIST["macos"]:
+            if top_window and top_window.get("kCGWindowOwnerName") in BROWSER_NAME_LIST["macos"]:
                 logger.info("Browser is detected. Skip saving AXTree.")
                 return
         elif system() == "Windows":
             top_window = get_top_window_name()
-            if top_window in BROWSER_NAME_LIST["windows"]:
+            if top_window and top_window in BROWSER_NAME_LIST["windows"]:
                 logger.info("Browser is detected. Skip saving AXTree.")
                 return
 
@@ -114,7 +114,8 @@ class KeyFrameDetector:
         # send_notification("End", "")
         self.socketio.emit("axtree", {"status": "end"})
         logger.info("A Tree Saved!")
-        self.pop_executor()
+        if self.executor_stack:
+            self.pop_executor()
 
     """def capture_screen_array(self, sct):
         screenshot = sct.grab(sct.monitors[1])
@@ -167,29 +168,31 @@ class KeyFrameDetector:
             stable_detect_started = False
 
             while self.running:
+                try:
+                    # current_img = self.capture_screen_array(sct)
+                    current_img = self.capture_screen_array()
 
-                # current_img = self.capture_screen_array(sct)
-                current_img = self.capture_screen_array()
-
-                if previous_img is not None:
-                    diff_ratio = self.calculate_pixel_difference_ratio(
-                        previous_img, current_img
-                    )
-                    if diff_ratio > 0.4:
-                        logger.info(
-                            "Possible user action detected due to significant change in diff of diff."
+                    if previous_img is not None:
+                        diff_ratio = self.calculate_pixel_difference_ratio(
+                            previous_img, current_img
                         )
-                        stable_count = 0
-                        stable_detect_started = True
-                    else:
-                        if diff_ratio < 0.01:
-                            if stable_detect_started:
-                                stable_count += 1
-                                if stable_count >= stable_threshold:
-                                    self.trigger_save_axtree()
-                                    stable_count = 0
-                                    stable_detect_started = False
-                previous_img = current_img
+                        if diff_ratio > 0.4:
+                            logger.info(
+                                "Possible user action detected due to significant change in diff of diff."
+                            )
+                            stable_count = 0
+                            stable_detect_started = True
+                        else:
+                            if diff_ratio < 0.01:
+                                if stable_detect_started:
+                                    stable_count += 1
+                                    if stable_count >= stable_threshold:
+                                        self.trigger_save_axtree()
+                                        stable_count = 0
+                                        stable_detect_started = False
+                    previous_img = current_img
+                except Exception as e:
+                    logger.warning(f"KeyFrameDetector: screenshot/diff error: {e}")
                 time.sleep(0.15)
 
     def start(self):
@@ -201,11 +204,13 @@ class KeyFrameDetector:
     def stop(self):
         self.running = False
         self.mouse_listener.stop()
-        self.keyframe_detector.join()
+        self.keyframe_detector.join(timeout=10)
+        if self.keyframe_detector.is_alive():
+            logger.warning("KeyFrameDetector: keyframe_detector thread did not stop in time")
         # Terminate all the executors
         while len(self.executor_stack) > 0:
             executor = self.pop_executor()
-            executor.shutdown()
+            executor.shutdown(wait=False)
 
 
 if __name__ == "__main__":
