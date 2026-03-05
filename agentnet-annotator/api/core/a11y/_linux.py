@@ -1,387 +1,164 @@
-import subprocess
-import threading
-from queue import Queue, Empty
+"""
+Linux AT-SPI accessibility module.
 
-import psutil
+All AT-SPI / GLib work runs in a **separate subprocess** to isolate its
+memory from the main Flask process.  GLib's C layer can corrupt the heap
+(malloc errors, segfaults) — with process isolation, only the worker
+subprocess dies; the main process and all recording data survive.
+
+The subprocess auto-restarts on the next call if it crashes.
+"""
+import json
+import os
+import select
+import subprocess
+import sys
+import threading
 
 from .Element.LinuxElementDescriber import LinuxElementDescriber
 from ..logger import logger
 
-MAX_DEPTH = 30
-MAX_WIDTH = 1024
-
-# ── AT-SPI worker thread ─────────────────────────────────────────────
-# GLib / AT-SPI objects have thread affinity: they must be created and
-# accessed from the same thread.  We initialise AT-SPI inside a single
-# long-lived daemon thread and dispatch every operation to it.  This
-# eliminates segfaults caused by cross-thread GLib access.
-
-_work_queue = Queue()       # items: (callable, args, result_queue)
-_ready = threading.Event()  # set once Atspi.init() has finished
-_Atspi = None               # populated by the worker thread
+_WORKER_SCRIPT = os.path.join(os.path.dirname(__file__), "_linux_atspi_worker.py")
 
 
-def _atspi_worker():
-    """Dedicated thread that owns all AT-SPI / GLib state."""
-    global _Atspi
-    import gi
-    gi.require_version("Atspi", "2.0")
-    from gi.repository import Atspi
-    Atspi.init()
-    _Atspi = Atspi
-    _ready.set()
+class _AtspiProxy:
+    """Proxy that runs AT-SPI operations in a separate subprocess."""
 
-    while True:
-        func, args, result_q = _work_queue.get()
+    def __init__(self):
+        self._proc = None
+        self._lock = threading.Lock()
+        self._start()
+
+    def _start(self):
+        """Start (or restart) the AT-SPI worker subprocess."""
+        if self._proc is not None:
+            try:
+                self._proc.kill()
+                self._proc.wait(timeout=2)
+            except Exception:
+                pass
+
         try:
-            result = func(*args)
-            result_q.put(("ok", result))
+            self._proc = subprocess.Popen(
+                [sys.executable, _WORKER_SCRIPT],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+
+            # Wait for the "ready" signal (up to 10s)
+            ready_fds, _, _ = select.select([self._proc.stdout], [], [], 10)
+            if ready_fds:
+                line = self._proc.stdout.readline()
+                if line:
+                    msg = json.loads(line.decode().strip())
+                    if msg.get("status") == "ready":
+                        logger.info(f"AT-SPI worker subprocess started (PID {self._proc.pid})")
+                        return
+            logger.warning("AT-SPI worker subprocess did not signal readiness")
         except Exception as e:
-            result_q.put(("err", e))
+            logger.warning(f"AT-SPI worker failed to start: {e}")
+            self._proc = None
 
+    def _is_alive(self):
+        return self._proc is not None and self._proc.poll() is None
 
-_thread = threading.Thread(target=_atspi_worker, daemon=True)
-_thread.start()
-_ready.wait()
+    def call(self, cmd, timeout=15, **kwargs):
+        """Send a command to the worker and return the result."""
+        with self._lock:
+            if not self._is_alive():
+                logger.warning("AT-SPI worker not running, restarting...")
+                self._start()
+                if not self._is_alive():
+                    logger.error("AT-SPI worker failed to restart")
+                    return None
 
-
-def _run(func, *args, timeout=15):
-    """Run *func* on the AT-SPI worker thread and return the result."""
-    rq = Queue(maxsize=1)
-    _work_queue.put((func, args, rq))
-    try:
-        status, value = rq.get(timeout=timeout)
-    except Empty:
-        raise TimeoutError(f"AT-SPI call {func.__name__} timed out after {timeout}s")
-    if status == "err":
-        raise value
-    return value
-
-
-# ── helpers (run ONLY on the worker thread) ───────────────────────────
-
-def _get_pid_from_xdotool():
-    """Get active window PID via xdotool."""
-    try:
-        wid = subprocess.check_output(
-            ["xdotool", "getactivewindow"], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        pid_str = subprocess.check_output(
-            ["xdotool", "getwindowpid", wid], stderr=subprocess.DEVNULL
-        ).decode().strip()
-        return int(pid_str)
-    except Exception:
-        return None
-
-
-def _find_active_window():
-    """Find the currently active/focused window via AT-SPI.
-
-    Returns (app_accessible, window_accessible) or (None, None).
-    """
-    desktop = _Atspi.get_desktop(0)
-    for i in range(desktop.get_child_count()):
-        try:
-            app = desktop.get_child_at_index(i)
-            if app is None:
-                continue
-            for j in range(app.get_child_count()):
-                win = app.get_child_at_index(j)
-                if win is None:
-                    continue
-                state_set = win.get_state_set()
-                if state_set.contains(_Atspi.StateType.ACTIVE) or state_set.contains(_Atspi.StateType.FOCUSED):
-                    return app, win
-        except Exception:
-            continue
-
-    # Fallback: xdotool PID
-    pid = _get_pid_from_xdotool()
-    if pid is not None:
-        for i in range(desktop.get_child_count()):
+            request = json.dumps({"cmd": cmd, "args": kwargs}) + "\n"
             try:
-                app = desktop.get_child_at_index(i)
-                if app is None:
-                    continue
+                self._proc.stdin.write(request.encode())
+                self._proc.stdin.flush()
+
+                # Wait for response with timeout
+                ready_fds, _, _ = select.select([self._proc.stdout], [], [], timeout)
+                if not ready_fds:
+                    logger.warning(f"AT-SPI worker timed out for {cmd}, killing...")
+                    self._proc.kill()
+                    self._proc = None
+                    return None
+
+                line = self._proc.stdout.readline()
+                if not line:
+                    # EOF — subprocess crashed
+                    logger.warning(f"AT-SPI worker crashed during {cmd}")
+                    self._proc = None
+                    return None
+
+                response = json.loads(line.decode().strip())
+                if response["status"] == "ok":
+                    return response["result"]
+                else:
+                    logger.warning(f"AT-SPI worker error for {cmd}: {response.get('message')}")
+                    return None
+
+            except (BrokenPipeError, OSError) as e:
+                logger.warning(f"AT-SPI worker pipe error for {cmd}: {e}")
+                self._proc = None
+                return None
+            except Exception as e:
+                logger.warning(f"AT-SPI proxy error for {cmd}: {e}")
                 try:
-                    app_pid = app.get_process_id()
+                    self._proc.kill()
                 except Exception:
-                    app_pid = -1
-                if app_pid == pid:
-                    if app.get_child_count() > 0:
-                        win = app.get_child_at_index(0)
-                        if win is not None:
-                            return app, win
-            except Exception:
-                continue
+                    pass
+                self._proc = None
+                return None
 
-    return None, None
-
-
-def _get_extents(node):
-    """Get bounding rectangle of an accessible node."""
-    try:
-        component = node.get_component_iface()
-        if component is None:
-            return None
-        ext = component.get_extents(_Atspi.CoordType.SCREEN)
-        if ext.width <= 0 and ext.height <= 0:
-            return None
-        return {
-            "left": ext.x,
-            "top": ext.y,
-            "right": ext.x + ext.width,
-            "bottom": ext.y + ext.height,
-        }
-    except Exception:
-        return None
-
-
-def _get_deepest_at_point(node, x, y):
-    """Recursively drill to the deepest accessible element at (x, y)."""
-    component = node.get_component_iface()
-    if component is None:
-        return node
-
-    current = node
-    for _ in range(MAX_DEPTH):
-        comp = current.get_component_iface()
-        if comp is None:
-            break
-        child = comp.get_accessible_at_point(x, y, _Atspi.CoordType.SCREEN)
-        if child is None or child == current:
-            break
-        current = child
-
-    return current
-
-
-def _traverse_accessible(node, depth=0):
-    """Recursively build an a11y tree dict matching the Windows format."""
-    if node is None:
-        return None
-
-    try:
-        name = node.get_name() or ""
-    except Exception:
-        name = ""
-
-    try:
-        role_name = node.get_role_name() or ""
-    except Exception:
-        role_name = ""
-
-    try:
-        description = node.get_description() or ""
-    except Exception:
-        description = ""
-
-    value = ""
-    try:
-        text_iface = node.get_text_iface()
-        if text_iface is not None:
-            char_count = text_iface.get_character_count()
-            if 0 < char_count <= 200:
-                value = text_iface.get_text(0, char_count) or ""
-    except Exception:
-        pass
-
-    ext = _get_extents(node)
-
-    tree = {
-        "Name": name,
-        "ControlType": role_name,
-        "Description": description,
-        "Value": value,
-        "BoundingRectangle": ext if ext else {"left": 0, "top": 0, "right": 0, "bottom": 0},
-        "Depth": depth,
-        "Children": [],
-    }
-
-    if depth < MAX_DEPTH:
-        try:
-            child_count = min(node.get_child_count(), MAX_WIDTH)
-        except Exception:
-            child_count = 0
-
-        for i in range(child_count):
+    def shutdown(self):
+        """Clean up the subprocess."""
+        if self._proc is not None:
             try:
-                child = node.get_child_at_index(i)
-                if child is not None:
-                    child_tree = _traverse_accessible(child, depth + 1)
-                    if child_tree:
-                        tree["Children"].append(child_tree)
+                self._proc.stdin.close()
+                self._proc.wait(timeout=3)
             except Exception:
-                continue
-
-    return tree
-
-
-# ── internal functions dispatched to worker thread ────────────────────
-
-def _do_get_top_window_name():
-    try:
-        app, win = _find_active_window()
-        if app is not None:
-            name = app.get_name()
-            if name:
-                return name
-    except Exception:
-        pass
-
-    # Fallback: xdotool + psutil (no AT-SPI)
-    try:
-        pid = _get_pid_from_xdotool()
-        if pid:
-            proc = psutil.Process(pid)
-            return proc.name().split(".", 1)[0]
-    except Exception:
-        pass
-
-    return None
+                try:
+                    self._proc.kill()
+                except Exception:
+                    pass
+            self._proc = None
 
 
-def _do_get_top_window():
-    app, win = _find_active_window()
-    if win is None:
-        return None
-    ext = _get_extents(win)
-    return {
-        "title": win.get_name() or "",
-        "app_name": app.get_name() if app else "",
-        "bounds": ext,
-    }
-
-
-def _do_get_active_window_state():
-    app, win = _find_active_window()
-    if win is None:
-        return None
-
-    title_parts = []
-    if app:
-        app_name = app.get_name()
-        if app_name:
-            title_parts.append(app_name)
-    win_name = win.get_name()
-    if win_name:
-        title_parts.append(win_name)
-    title = " ".join(title_parts) if title_parts else ""
-
-    ext = _get_extents(win)
-    left = ext["left"] if ext else 0
-    top = ext["top"] if ext else 0
-    width = (ext["right"] - ext["left"]) if ext else 0
-    height = (ext["bottom"] - ext["top"]) if ext else 0
-
-    try:
-        pid = app.get_process_id() if app else 0
-    except Exception:
-        pid = 0
-
-    return {
-        "title": title,
-        "left": left,
-        "top": top,
-        "width": width,
-        "height": height,
-        "window_id": pid,
-    }
-
-
-def _do_get_accessibility_tree():
-    tree = {}
-    tree_status = {
-        "complete": True,
-        "switched": False,
-        "closed": False,
-    }
-
-    try:
-        state_before = _do_get_active_window_state()
-        app, win = _find_active_window()
-        if win is None:
-            tree_status["complete"] = False
-            tree_status["closed"] = True
-            tree.update(tree_status)
-            return tree
-
-        tree = _traverse_accessible(win, depth=0)
-
-        state_after = _do_get_active_window_state()
-        if state_before != state_after:
-            tree_status["complete"] = False
-            tree_status["switched"] = True
-
-    except Exception as e:
-        tree_status["complete"] = False
-        tree_status["closed"] = True
-        logger.exception(f"get_accessibility_tree error: {str(e)}")
-
-    tree.update(tree_status)
-    return tree
-
-
-def _do_get_active_element_state(x, y):
-    try:
-        app, win = _find_active_window()
-        if win is None:
-            logger.info(f"get_active_element_state: no active window found for ({x}, {y})")
-            return {}
-
-        deepest = _get_deepest_at_point(win, x, y)
-
-        context_node = deepest
-        for _ in range(3):
-            try:
-                parent = context_node.get_parent()
-                if parent is None or parent.get_role() == _Atspi.Role.DESKTOP_FRAME:
-                    break
-                context_node = parent
-            except Exception:
-                break
-
-        tree = _traverse_accessible(context_node)
-        if tree and (tree.get("Name") or tree.get("Children")):
-            logger.info(f"get_active_element_state: captured element at ({x},{y}): Name='{tree.get('Name')}', ControlType='{tree.get('ControlType')}'")
-            return tree
-
-        logger.info(f"get_active_element_state: falling back to window tree for ({x},{y})")
-        return _traverse_accessible(win)
-
-    except Exception as e:
-        logger.warning(f"get_active_element_state error at ({x},{y}): {e}")
-        return {}
+_proxy = _AtspiProxy()
 
 
 # ── public API (matches _windows.py interface) ────────────────────────
-# Every public function dispatches to the worker thread via _run().
+# Every call dispatches to the subprocess.  If the subprocess crashes,
+# it returns None/{} and auto-restarts on the next call.
 
 
 def get_top_window_name() -> str:
-    return _run(_do_get_top_window_name)
+    return _proxy.call("get_top_window_name")
 
 
 def get_top_window() -> dict:
-    return _run(_do_get_top_window)
+    return _proxy.call("get_top_window")
 
 
 def get_active_window_state(read_window_data: bool = True) -> dict:
-    return _run(_do_get_active_window_state)
+    return _proxy.call("get_active_window_state")
 
 
 def get_accessibility_tree():
-    return _run(_do_get_accessibility_tree)
+    return _proxy.call("get_accessibility_tree") or {}
 
 
 def get_active_element_state(x, y):
-    return _run(_do_get_active_element_state, x, y)
+    return _proxy.call("get_active_element_state", x=x, y=y) or {}
 
 
 def parse_element(element, x: float, y: float):
     """Score the element tree and find the best matching node.
 
-    Pure Python dict operations — no AT-SPI calls, runs on caller thread.
+    Pure Python dict operations — no AT-SPI calls, runs in main process.
     """
     try:
         if not element or not isinstance(element, dict):

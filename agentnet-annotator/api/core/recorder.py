@@ -106,6 +106,7 @@ class Recorder(QThread):
             self.keyframe_detector = KeyFrameDetector(self.socketio)
 
         self.event_count = 0
+        self._last_flush_time = 0
 
     def on_move(self, x, y):
         if not self._is_paused:
@@ -186,6 +187,10 @@ class Recorder(QThread):
         self.obs_client.start_recording()
         self.metadata_manager.set_video_start_timestamp(time.perf_counter())
 
+        # Save metadata early so crash recovery has something to work with
+        self.metadata_manager.save_metadata()
+        self._last_flush_time = time.time()
+
         while self._is_recording:
             event = self.event_queue.get()
             event["event_idx"] = self.event_count
@@ -211,7 +216,40 @@ class Recorder(QThread):
                     write_encrypt_line(self.top_window_file,
                                     top_window_queue.get())
 
+            # Flush all files every 5 seconds to prevent data loss on crash
+            now = time.time()
+            if now - self._last_flush_time >= 5:
+                self._flush_all_files()
+                self._last_flush_time = now
+
         logger.info("Recorder: run done.")
+
+    def _flush_all_files(self):
+        """Flush all open recording files to disk."""
+        try:
+            self.events_file.flush()
+        except Exception:
+            pass
+        try:
+            if self.gen_window and hasattr(self, 'a11y_file'):
+                self.a11y_file.flush()
+        except Exception:
+            pass
+        try:
+            if self.gen_element and hasattr(self, 'element_file'):
+                self.element_file.flush()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'top_window_file'):
+                self.top_window_file.flush()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'html_file'):
+                self.html_file.flush()
+        except Exception:
+            pass
 
     def write_axtree_data(self, keyframe_detector, a11y_file):
         while not keyframe_detector.axtree_queue.empty():
