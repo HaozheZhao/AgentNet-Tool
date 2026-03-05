@@ -1,12 +1,11 @@
-import requests
 import os
-import json
 
+import requests
 from flask import jsonify, request
 
-from .constants import FAILED, SUCCEED, SERVER_URL
+from .constants import FAILED, SERVER_URL
 from .logger import logger
-from .utils import extract_frames_from_video, find_mp4, RECORDING_DIR, REVIEW_RECORDING_DIR, read_encrypted_jsonl
+from .utils import RECORDING_DIR, REVIEW_RECORDING_DIR, read_encrypted_jsonl
 
 
 def polish_task_name_and_description():
@@ -62,34 +61,3 @@ def polish_task_name_and_description():
         )
 
 
-def predict_targets(recording_path, events):
-    video_path = os.path.join(recording_path, find_mp4(recording_path))
-    metadata_path = os.path.join(recording_path, "metadata.json")
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
-    video_start_timestamp = metadata["video_start_timestamp"]
-    screen_width = metadata["screen_width"]
-    screen_height = metadata["screen_height"]
-    frames = extract_frames_from_video(
-        video_path,
-        events,
-        video_start_timestamp,
-        screen_width,
-        screen_height,
-    )
-    payload = {
-        "interpretations": [
-            {
-                "base64_image": frame,
-                "action": event["action"],
-                "description": event["description"],
-            }
-            for frame, event in zip(frames, events)
-        ]
-    }
-    response = requests.post(
-        f"{SERVER_URL}/interpret_actions",
-        json=payload,
-    )
-    logger.info(f"Response from interpret_actions: {response.json()}")
-    return response.json().get("results", [])

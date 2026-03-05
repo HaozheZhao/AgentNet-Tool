@@ -58,7 +58,6 @@ else:
     from .action import *
     from .reduction_helper import *
     from ..logger import logger
-    from ..ai_assistant import predict_targets
     from ..a11y import parse_element
     from ..utils import (
         get_recordings_dir,
@@ -977,62 +976,6 @@ class Reducer:
             if len(html_data) > 0:
                 saved_htmls.add(_find_pred(action.start_time, html_data))
                 saved_htmls.add(_find_succ(action.start_time, html_data))
-
-        need_gpt_list = []
-        for index, action in enumerate(self.reduced_actions):
-            if action.action in ("click"):
-                if action.axtree:
-                    axtree_texts = extract_text_from_json(action.axtree)
-                    logger.info(
-                        f"Action {action.action} has {len(axtree_texts)} text nodes, target is useful? {is_useful(action.target)}"
-                    )
-                    if len(axtree_texts) < 10 and (not is_useful(action.target)):
-                        # 判断出来拿的tree是空壳，这个tree也不需要了
-                        logger.info(f"Target {action.target} is not useful")
-                        need_gpt_list.append(
-                            {
-                                "id": index,
-                                "timestamp": action.start_time,
-                                "action": action.action,
-                                "description": action.description,
-                                "coordinate": action.coordinate,
-                            }
-                        )
-                else:
-                    logger.info(
-                        f"Action {action.action} target is useful? {is_useful(action.target)}"
-                    )
-                    if not is_useful(action.target):
-                        logger.info(f"Target {action.target} is not useful")
-                        need_gpt_list.append(
-                            {
-                                "id": index,
-                                "timestamp": action.start_time,
-                                "action": action.action,
-                                "description": action.description,
-                                "coordinate": action.coordinate,
-                            }
-                        )
-
-        if len(need_gpt_list) > 0:
-            try:
-                gpt_result = predict_targets(self.recording_path, need_gpt_list)
-                need_gpt_idx = [event["id"] for event in need_gpt_list]
-
-                for result, index in zip(gpt_result, need_gpt_idx):
-                    self.reduced_actions[index].gpt_target = result
-                    if hasattr(self.reduced_actions[index], "target") and isinstance(
-                        self.reduced_actions[index].target, dict
-                    ):
-                        self.reduced_actions[index].target["mark"] = False
-                    if hasattr(
-                        self.reduced_actions[index], "past_frame_target"
-                    ) and isinstance(
-                        self.reduced_actions[index].past_frame_target, dict
-                    ):
-                        self.reduced_actions[index].past_frame_target["mark"] = False
-            except Exception as e:
-                logger.exception(f"Reducer: match_element: {str(e)}")
 
         # Save html info
         saved_html_data = [html_data[idx] for idx in saved_htmls]
