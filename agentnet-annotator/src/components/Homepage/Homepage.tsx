@@ -146,7 +146,7 @@ export default function Homepage() {
                     aria-hidden="true"
                 >
                     <div
-                        className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+                        className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#6366f1] to-[#a78bfa] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
                         style={{
                             clipPath:
                                 "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
@@ -176,7 +176,7 @@ export default function Homepage() {
                     aria-hidden="true"
                 >
                     <div
-                        className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+                        className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#818cf8] to-[#c4b5fd] opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
                         style={{
                             clipPath:
                                 "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
@@ -188,7 +188,7 @@ export default function Homepage() {
                 {/* Add this new section to display task information */}
                 {(HubTaskName || HubTaskDescription) && (
                     <div className="mx-auto mt-8 max-w-xl sm:mt-10 lg:mt-12 lg:max-w-2xl">
-                        <div className="bg-indigo-50 dark:bg-indigo-900 border border-indigo-200 dark:border-indigo-700 rounded-lg p-4">
+                        <div className="bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
                             <h2 className="text-base font-semibold text-indigo-800 dark:text-indigo-200 mb-2">
                                 Current Task:{" "}
                                 {HubTaskName && (
@@ -211,21 +211,19 @@ export default function Homepage() {
                     <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-6 lg:max-w-none lg:grid-cols-1 lg:gap-y-8">
                         <div
                             id="recording"
-                            className={`relative pl-16 border rounded-lg p-4 cursor-pointer border-2
+                            className={`relative pl-16 border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ease-in-out
                 ${
                     isRecording
-                        ? "border-rose-600 bg-rose-100 dark:border-rose-600 dark:bg-rose-900"
-                        : "border-indigo-100 hover:border-indigo-600 dark:border-indigo-600 dark:hover:border-indigo-600"
-                } 
-                ${loading ? "opacity-50 cursor-not-allowed" : ""}
-                dark:border-gray-600 dark:hover:border-indigo-600`}
+                        ? "border-rose-500 bg-rose-50 shadow-md shadow-rose-100 dark:border-rose-500 dark:bg-rose-950/50 dark:shadow-rose-900/20"
+                        : "border-gray-200 hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-100 dark:border-gray-700 dark:hover:border-indigo-500 dark:hover:shadow-indigo-900/20"
+                }
+                ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
                             onClick={handleRecordClick}
                         >
                             <dt className="flex flex-col gap-1 flex-start text-lg font-semibold leading-7 text-gray-900 dark:text-gray-300">
                                 <div
-                                    className={`absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-lg 
-                    ${isRecording ? "bg-rose-600" : "bg-indigo-600"} 
-                `}
+                                    className={`absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-200
+                    ${isRecording ? "bg-rose-500" : "bg-indigo-600"}`}
                                 >
                                     {loading ? (
                                         <div
@@ -262,7 +260,7 @@ export default function Homepage() {
                                                 ? "Stop Recording"
                                                 : "Start Recording"}
                                         </p>
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                             <svg
                                                 className="shrink-0 size-3"
                                                 xmlns="http://www.w3.org/2000/svg"
@@ -279,7 +277,7 @@ export default function Homepage() {
                                             </svg>
                                         </kbd>
                                         +
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                             <svg
                                                 className="shrink-0 size-3"
                                                 xmlns="http://www.w3.org/2000/svg"
@@ -298,11 +296,11 @@ export default function Homepage() {
                                         </kbd>
                                         +
                                         {isRecording ? (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                                 T
                                             </kbd>
                                         ) : (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                                 R
                                             </kbd>
                                         )}
@@ -314,20 +312,20 @@ export default function Homepage() {
                                                 ? "Stop Recording"
                                                 : "Start Recording"}
                                         </p>
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                             ctrl
                                         </kbd>
                                         +
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                             alt
                                         </kbd>
                                         +
                                         {isRecording ? (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                                 T
                                             </kbd>
                                         ) : (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-200 border border-gray-300 font-mono text-sm text-gray-800 rounded-md dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-200">
+                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
                                                 R
                                             </kbd>
                                         )}
@@ -341,11 +339,11 @@ export default function Homepage() {
                 <div className="mx-auto mt-2 max-w-xl sm:mt-4 lg:mt-6 lg:max-w-2xl">
                     <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-6 lg:max-w-none lg:grid-cols-1 lg:gap-y-8">
                         <div
-                            className="relative pl-16 border border-gray-300 rounded-lg hover:border-indigo-600 p-4 dark:border-gray-600 dark:hover:border-indigo-600"
+                            className="relative pl-16 border-2 border-gray-200 rounded-xl p-4 cursor-pointer transition-all duration-200 ease-in-out hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-100 dark:border-gray-700 dark:hover:border-indigo-500 dark:hover:shadow-indigo-900/20"
                             onClick={() => handleOpenTaskHub()}
                         >
                             <dt className="text-lg font-semibold leading-7">
-                                <div className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600">
+                                <div className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600">
                                     <AutoFixHighIcon
                                         aria-hidden="true"
                                         className="h-6 w-6 text-white"
