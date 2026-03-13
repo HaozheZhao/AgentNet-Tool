@@ -1048,20 +1048,6 @@ class Reducer:
                 new_actions.append(action)
         self.reduced_actions = new_actions
 
-    def _remove_empty_types(self):
-        """Remove Type actions that resolve to empty text.
-
-        Standalone functional keys like CapsLock or NumLock create Type actions
-        that resolve to empty strings. These are not meaningful user actions
-        and should be removed.
-        """
-        self.reduced_actions = [
-            a for a in self.reduced_actions
-            if not (a.action == "type"
-                    and hasattr(a, 'resolved_text')
-                    and a.resolved_text is not None
-                    and not a.resolved_text.strip())
-        ]
 
     def _split_terminal_types(self):
         """Split Type actions at Enter boundaries when in a terminal app.
@@ -1152,7 +1138,6 @@ class Reducer:
             self._flatten_shift_types()
             self._split_terminal_types()
             self.transform()
-            self._remove_empty_types()
             self.finish()
 
             event_buffer_path = os.path.join(recording_path, "event_buffer.jsonl")

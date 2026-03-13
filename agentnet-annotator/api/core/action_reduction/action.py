@@ -483,8 +483,21 @@ class Type(Action):
         super().transform()
         self.resolve_text()
 
-        # Always use the clean resolved description (no raw correction trajectory)
-        self.description = "⌨️ Type: {}".format(self.resolved_description)
+        # Check if ALL keys are functional (no printable characters)
+        all_functional = all(
+            k.lower() in FUNCTIONAL_KEYS or k in FUNCTIONAL_KEYS
+            for k in self.key_names
+        )
+
+        if all_functional and not self.resolved_text:
+            # Pure functional key(s) with no text output (CapsLock, F-keys, etc.)
+            # Reclassify as press action — these are intentional user actions
+            self.action = "press"
+            key_str = " + ".join(wrap_func_key(k) for k in self.key_names)
+            self.description = "⌨️ Press: {}".format(key_str)
+        else:
+            # Normal typing or functional keys that produce text (Space, Enter, Tab)
+            self.description = "⌨️ Type: {}".format(self.resolved_description)
 
         # Store raw keys for debugging (visible in JSONL output)
         self.raw_keys = self.key_names.copy()
