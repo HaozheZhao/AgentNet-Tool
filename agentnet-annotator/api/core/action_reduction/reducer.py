@@ -536,15 +536,26 @@ class Reducer:
 
                     self.reduced_actions[start_key_idx].set_complete_event(event)
 
+                    # Separate keyboard actions (Press, Type) from mouse
+                    # children.  Keyboard actions performed while holding a
+                    # mouse button should be independent top-level operations,
+                    # not nested inside the click.
+                    keyboard_actions = []
                     for i in range(
                         start_key_idx + 1, len(self.reduced_actions), 1
-                    ):  # TODO: 2 -> 1
-                        self.reduced_actions[start_key_idx].add_child(
-                            self.reduced_actions[i]
-                        )
+                    ):
+                        action = self.reduced_actions[i]
+                        if isinstance(action, (Press, Type)):
+                            keyboard_actions.append(action)
+                        else:
+                            self.reduced_actions[start_key_idx].add_child(
+                                action
+                            )
                     del self.reduced_actions[
                         start_key_idx + 1 : len(self.reduced_actions)
                     ]
+                    # Re-add extracted keyboard actions after the click
+                    self.reduced_actions.extend(keyboard_actions)
 
                     # multi-click
                     mouse_start_action = self.reduced_actions[start_key_idx]
