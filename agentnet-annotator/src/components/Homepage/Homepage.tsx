@@ -139,66 +139,37 @@ export default function Homepage() {
     };
 
     return (
-        <div className="bg-white w-full dark:bg-gray-900">
-            <div className="relative isolate">
-                <div
-                    className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
-                    aria-hidden="true"
-                >
-                    <div
-                        className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#6366f1] to-[#a78bfa] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-                        style={{
-                            clipPath:
-                                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-                        }}
-                    />
-                </div>
-                <div className="pt-16  pb-4 sm:pt-24 ">
-                    <div className="mx-auto max-w-7xl px-6 lg:px-8">
-                        <div className="mx-auto max-w-6xl text-center">
-                            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl dark:text-gray-100">
-                                CCAgent
-                            </h1>
-                            <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-                                🚀 CCAgent is a customized toolkit for
-                                users to label agent tasks data for collection.
-                            </p>
-                            <p className="mt-0 text-lg leading-8 text-gray-600 dark:text-gray-300">
-                                📌 We are shaping the future of digital agents
-                                with 1M+ data!
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                <div
-                    className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
-                    aria-hidden="true"
-                >
-                    <div
-                        className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#818cf8] to-[#c4b5fd] opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-                        style={{
-                            clipPath:
-                                "polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)",
-                        }}
-                    />
-                </div>
+        <div className="min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
+            {/* Decorative background blobs */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
+                <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl" />
+                <div className="absolute top-1/3 -right-24 w-80 h-80 bg-violet-400/15 rounded-full blur-3xl" />
+                <div className="absolute -bottom-24 left-1/3 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl" />
             </div>
-            <div className="mx-auto max-w-7xl px-6 lg:px-8 pb-40">
-                {/* Add this new section to display task information */}
-                {(HubTaskName || HubTaskDescription) && (
-                    <div className="mx-auto mt-8 max-w-xl sm:mt-10 lg:mt-12 lg:max-w-2xl">
-                        <div className="bg-indigo-50/80 dark:bg-indigo-950/50 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4 shadow-sm">
-                            <h2 className="text-base font-semibold text-indigo-800 dark:text-indigo-200 mb-2">
-                                Current Task:{" "}
-                                {HubTaskName && (
-                                    <p className="inline text-md text-indigo-700 dark:text-indigo-300 font-medium">
-                                        {HubTaskName}
-                                    </p>
-                                )}
-                            </h2>
 
+            <div className="relative z-10 flex flex-col items-center px-6 pt-16 pb-24 sm:pt-24">
+                {/* Title */}
+                <h1 className="text-5xl sm:text-7xl font-extrabold tracking-tight text-gradient mb-4">
+                    CCAgent
+                </h1>
+                <p className="max-w-lg text-center text-base text-gray-500 dark:text-gray-400 mb-12">
+                    A customized toolkit for labeling agent task data for collection.
+                </p>
+
+                {/* Task info banner */}
+                {(HubTaskName || HubTaskDescription) && (
+                    <div className="w-full max-w-lg mb-8">
+                        <div className="glass-card rounded-2xl p-5 shadow-lg">
+                            <h2 className="text-sm font-semibold uppercase tracking-wide text-indigo-600 dark:text-indigo-400 mb-1">
+                                Current Task
+                            </h2>
+                            {HubTaskName && (
+                                <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                    {HubTaskName}
+                                </p>
+                            )}
                             {HubTaskDescription && (
-                                <p className="text-indigo-600 dark:text-indigo-400 mt-2">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                                     {HubTaskDescription}
                                 </p>
                             )}
@@ -206,193 +177,132 @@ export default function Homepage() {
                     </div>
                 )}
 
-                <div className="mx-auto mt-8 max-w-xl sm:mt-10 lg:mt-12 lg:max-w-2xl">
-                    <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-6 lg:max-w-none lg:grid-cols-1 lg:gap-y-8">
-                        <div
-                            id="recording"
-                            className={`relative pl-16 border-2 rounded-xl p-4 cursor-pointer transition-all duration-200 ease-in-out
-                ${
-                    isRecording
-                        ? "border-rose-500 bg-rose-50 shadow-md shadow-rose-100 dark:border-rose-500 dark:bg-rose-950/50 dark:shadow-rose-900/20"
-                        : "border-gray-200 hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-100 dark:border-gray-700 dark:hover:border-indigo-500 dark:hover:shadow-indigo-900/20"
-                }
-                ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
-                            onClick={handleRecordClick}
-                        >
-                            <dt className="flex flex-col gap-1 flex-start text-lg font-semibold leading-7 text-gray-900 dark:text-gray-300">
-                                <div
-                                    className={`absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-200
-                    ${isRecording ? "bg-rose-500" : "bg-indigo-600"}`}
-                                >
-                                    {loading ? (
-                                        <div
-                                            className="animate-spin inline-block size-6 border-[3px] border-current border-t-transparent text-blue-600 rounded-full dark:text-blue-500"
-                                            role="status"
-                                            aria-label="loading"
-                                        >
-                                            <span className="sr-only">
-                                                Loading...
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            {isRecording ? (
-                                                <StopIcon
-                                                    className="h-6 w-6 text-white"
-                                                    aria-hidden="true"
-                                                />
-                                            ) : (
-                                                <PlayIcon
-                                                    className="h-6 w-6 text-white"
-                                                    aria-hidden="true"
-                                                />
-                                            )}
-                                        </>
-                                    )}
-                                </div>
+                {/* Recording button — large, centered, prominent */}
+                <div className="w-full max-w-lg mb-6">
+                    <div
+                        id="recording"
+                        className={`glass-card rounded-2xl p-6 cursor-pointer transition-all duration-300 ease-out
+                            ${isRecording
+                                ? "ring-2 ring-red-500 shadow-lg shadow-red-200/40 dark:shadow-red-900/30"
+                                : "shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                            }
+                            ${loading ? "opacity-60 cursor-not-allowed" : ""}`}
+                        onClick={handleRecordClick}
+                    >
+                        <div className="flex items-center gap-5">
+                            {/* Icon circle */}
+                            <div
+                                className={`flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-300
+                                    ${isRecording
+                                        ? "bg-red-500 animate-pulse-ring"
+                                        : "bg-gradient-to-br from-indigo-500 to-violet-600"
+                                    }`}
+                            >
                                 {loading ? (
-                                    <p>Processing...</p>
-                                ) : myos === "darwin" ? (
-                                    <span className="flex flex-wrap items-center gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
-                                        <p className="text-lg font-semibold leading-7 text-gray-900 dark:text-gray-300 mr-4">
-                                            {isRecording
-                                                ? "Stop Recording"
-                                                : "Start Recording"}
-                                        </p>
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                            <svg
-                                                className="shrink-0 size-3"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path>
-                                            </svg>
-                                        </kbd>
-                                        +
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                            <svg
-                                                className="shrink-0 size-3"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M3 3h6l6 18h6"></path>
-                                                <path d="M14 3h7"></path>
-                                            </svg>
-                                        </kbd>
-                                        +
-                                        {isRecording ? (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                                T
-                                            </kbd>
-                                        ) : (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                                R
-                                            </kbd>
-                                        )}
-                                    </span>
+                                    <div
+                                        className="animate-spin inline-block size-7 border-[3px] border-white border-t-transparent rounded-full"
+                                        role="status"
+                                        aria-label="loading"
+                                    >
+                                        <span className="sr-only">Loading...</span>
+                                    </div>
+                                ) : isRecording ? (
+                                    <StopIcon className="h-7 w-7 text-white" aria-hidden="true" />
                                 ) : (
-                                    <span className="flex flex-wrap items-center gap-x-1 text-sm text-gray-600 dark:text-neutral-400">
-                                        <p className="text-lg font-semibold leading-7 text-gray-900 dark:text-gray-300 mr-4">
-                                            {isRecording
-                                                ? "Stop Recording"
-                                                : "Start Recording"}
-                                        </p>
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                            ctrl
-                                        </kbd>
-                                        +
-                                        <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                            alt
-                                        </kbd>
-                                        +
-                                        {isRecording ? (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                                T
-                                            </kbd>
-                                        ) : (
-                                            <kbd className="min-h-[30px] min-w-[30px] inline-flex justify-center items-center py-1 px-1.5 bg-gray-100 border border-gray-300 font-mono text-sm text-gray-700 rounded-lg shadow-sm dark:bg-neutral-800 dark:border-neutral-600 dark:text-neutral-200">
-                                                R
-                                            </kbd>
-                                        )}
-                                    </span>
+                                    <PlayIcon className="h-7 w-7 text-white" aria-hidden="true" />
                                 )}
-                            </dt>
-                            <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-300"></dd>
-                        </div>
-                    </dl>
-                </div>
-                <div className="mx-auto mt-2 max-w-xl sm:mt-4 lg:mt-6 lg:max-w-2xl">
-                    <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-6 lg:max-w-none lg:grid-cols-1 lg:gap-y-8">
-                        <div
-                            className="relative pl-16 border-2 border-gray-200 rounded-xl p-4 cursor-pointer transition-all duration-200 ease-in-out hover:border-indigo-500 hover:shadow-md hover:shadow-indigo-100 dark:border-gray-700 dark:hover:border-indigo-500 dark:hover:shadow-indigo-900/20"
-                            onClick={() => handleOpenTaskHub()}
-                        >
-                            <dt className="text-lg font-semibold leading-7">
-                                <div className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600">
-                                    <AutoFixHighIcon
-                                        aria-hidden="true"
-                                        className="h-6 w-6 text-white"
-                                        style={{ color: "white" }}
-                                    />
-                                </div>
-                                Random Task
-                            </dt>
-                            <dd className="mt-1 text-base leading-7 text-gray-600 dark:text-gray-300">
-                                Randomly select a task from the our task hub
-                                with detailed tutorial.
-                            </dd>
-                        </div>
-                    </dl>
-                </div>
-                <div className="mx-auto mt-8 max-w-xl sm:mt-10 lg:mt-12 lg:max-w-2xl">
-                    <fieldset className="space-x-10">
-                        <div className="space-y-5 space-x-10 mx-10">
-                            <div className="relative flex items-start">
-                                <div className="flex h-6 items-center">
-                                    <input
-                                        id="comments"
-                                        aria-describedby="comments-description"
-                                        name="comments"
-                                        type="checkbox"
-                                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                                        checked={genWindowA11y}
-                                        onChange={handleWindowA11yChange}
-                                    />
-                                </div>
-                                <div className="ml-3 text-sm leading-6">
-                                    <label
-                                        htmlFor="comments"
-                                        className="font-medium text-gray-900 dark:text-gray-300"
-                                    >
-                                        Get Accessibility Tree
-                                    </label>
-                                    <p
-                                        id="comments-description"
-                                        className="text-gray-500 dark:text-gray-400"
-                                    >
-                                        Get the accessibility tree of the
-                                        current window.
-                                    </p>
-                                </div>
+                            </div>
+
+                            {/* Text + shortcut */}
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-xl font-bold ${isRecording ? "text-red-600 dark:text-red-400" : "text-gray-900 dark:text-gray-100"}`}>
+                                    {loading ? "Processing..." : isRecording ? "Stop Recording" : "Start Recording"}
+                                </p>
+                                {!loading && (
+                                    <div className="flex items-center gap-1.5 mt-1.5">
+                                        {myos === "darwin" ? (
+                                            <>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">
+                                                    <svg className="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3"></path></svg>
+                                                </kbd>
+                                                <span className="text-gray-400 text-xs">+</span>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">
+                                                    <svg className="shrink-0 size-3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3h6l6 18h6"></path><path d="M14 3h7"></path></svg>
+                                                </kbd>
+                                                <span className="text-gray-400 text-xs">+</span>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">
+                                                    {isRecording ? "T" : "R"}
+                                                </kbd>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">ctrl</kbd>
+                                                <span className="text-gray-400 text-xs">+</span>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">alt</kbd>
+                                                <span className="text-gray-400 text-xs">+</span>
+                                                <kbd className="inline-flex items-center justify-center h-7 min-w-[28px] px-1.5 rounded-md bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-xs font-mono text-gray-600 dark:text-gray-300 shadow-sm">
+                                                    {isRecording ? "T" : "R"}
+                                                </kbd>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
-                    </fieldset>
+                    </div>
                 </div>
-            </div>{" "}
+
+                {/* Task Hub card */}
+                <div className="w-full max-w-lg mb-8">
+                    <div
+                        className="glass-card rounded-2xl p-6 cursor-pointer transition-all duration-300 ease-out shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                        onClick={() => handleOpenTaskHub()}
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="flex-shrink-0 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500">
+                                <AutoFixHighIcon
+                                    aria-hidden="true"
+                                    className="h-7 w-7"
+                                    style={{ color: "white" }}
+                                />
+                            </div>
+                            <div>
+                                <p className="text-xl font-bold text-gray-900 dark:text-gray-100">Random Task</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Randomly select a task from the task hub with detailed tutorial.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Accessibility checkbox */}
+                <div className="w-full max-w-lg">
+                    <label htmlFor="comments" className="flex items-center gap-3 cursor-pointer group">
+                        <input
+                            id="comments"
+                            aria-describedby="comments-description"
+                            name="comments"
+                            type="checkbox"
+                            className="h-5 w-5 rounded-md border-gray-300 text-indigo-600 focus:ring-indigo-500 transition-colors"
+                            checked={genWindowA11y}
+                            onChange={handleWindowA11yChange}
+                        />
+                        <div>
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                                Get Accessibility Tree
+                            </span>
+                            <p
+                                id="comments-description"
+                                className="text-xs text-gray-400 dark:text-gray-500"
+                            >
+                                Capture the accessibility tree of the current window during recording.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <Snackbar
                 open={openSnackbar}
                 autoHideDuration={5000}
