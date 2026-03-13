@@ -389,7 +389,16 @@ class Reducer:
 
                 # Special key but complete (not long press)
                 if event["complete"]:
-                    self.reduced_actions.append(Press(event))
+                    # State toggle keys (CapsLock, NumLock): merge into adjacent
+                    # Type rather than creating a Press that breaks Type merging.
+                    # pynput already reports correct character case, so these are
+                    # just noise in the keystroke stream.
+                    if (event["name"].lower() in STATE_TOGGLE_KEYS
+                            and len(self.reduced_actions) > 0
+                            and self.reduced_actions[-1].action == "type"):
+                        self.reduced_actions[-1].append(event)
+                    else:
+                        self.reduced_actions.append(Press(event))
 
                 # Long press special keys
                 else:
@@ -578,7 +587,7 @@ class Reducer:
         return None
 
     def _find_next_type_action(self, start_idx):
-        """Find next Type action, skipping non-blocking actions (move, scroll)."""
+        """Find next Type action, skipping non-blocking actions (move, scroll, state toggles)."""
         for i in range(start_idx, len(self.reduced_actions)):
             action = self.reduced_actions[i]
             if action.action == "type":
@@ -587,6 +596,10 @@ class Reducer:
                 continue
             elif action.action == "press" and action.is_typing():
                 return i
+            elif (action.action == "press"
+                  and hasattr(action, 'key_name')
+                  and action.key_name.lower() in STATE_TOGGLE_KEYS):
+                continue  # State toggles don't interrupt typing flow
             else:
                 return None
         return None

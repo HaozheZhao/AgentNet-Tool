@@ -4,8 +4,15 @@ MOUSE_LONG_PRESS_INTERVAL = 1
 MODIFIED_KEYS = {"alt", "alt_l", "alt_r", "alt_gr",'altleft', 'altright',
                  "ctrl", "ctrl_l", "ctrl_r",'ctrlleft', 'ctrlright',
                  "shift", "shift_l", "shift_r", 'shiftleft', 'shiftright',
-                 "cmd", "cmd_l", "cmd_r", 'command', 
+                 "cmd", "cmd_l", "cmd_r", 'command',
                  'fn', 'windows', 'win', 'winleft', 'winright', 'super', 'meta'}
+
+# State toggle keys — these don't produce text and don't interrupt typing flow.
+# pynput already reports the correct character case, so CapsLock/NumLock are just
+# noise in the keystroke stream. They should merge into adjacent Type actions.
+STATE_TOGGLE_KEYS = {"caps", "capslock", "caps_lock",
+                     "num_lock", "numlock", "numpad_lock",
+                     "scroll_lock", "scrolllock"}
 
 # TODO
 FUNCTIONAL_KEYS = {
