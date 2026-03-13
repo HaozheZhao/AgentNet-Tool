@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# AgentNet Annotator - Setup Script for Ubuntu
+# CCAgent Annotator - Setup Script for Ubuntu
 # This script creates the conda environment and installs all dependencies
 # Run with: ./setup.sh
 
 set -e  # Exit on error
 
 echo "=========================================="
-echo "AgentNet Annotator Setup Script"
+echo "CCAgent Annotator Setup Script"
 echo "=========================================="
 
 # Colors for output

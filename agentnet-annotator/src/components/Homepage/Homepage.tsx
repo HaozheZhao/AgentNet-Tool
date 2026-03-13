@@ -157,11 +157,11 @@ export default function Homepage() {
                     <div className="mx-auto max-w-7xl px-6 lg:px-8">
                         <div className="mx-auto max-w-6xl text-center">
                             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl dark:text-gray-100">
-                                AgentNet Tool : Scaling Multimodal Computer
+                                CCAgent : Scaling Multimodal Computer
                                 Agent Data to 1M+ Trajectories
                             </h1>
                             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-                                🚀 AgentNet Tool is a customized toolkit for
+                                🚀 CCAgent is a customized toolkit for
                                 users to label agent tasks data for collection.
                             </p>
                             <p className="mt-0 text-lg leading-8 text-gray-600 dark:text-gray-300">

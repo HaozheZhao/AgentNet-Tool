@@ -120,7 +120,7 @@ app.on("ready", () => {
   });
   ipcMain.on("stop-record-icon", () => {
     StopRecording();
-    tray?.setTitle("AgentNet");
+    tray?.setTitle("CCAgent");
   });
 
   ipcMain.on("tree-start", () => {

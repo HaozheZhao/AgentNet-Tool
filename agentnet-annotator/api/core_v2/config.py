@@ -23,9 +23,9 @@ class RecordingConfig:
     
     def __post_init__(self):
         if self.recording_dir is None:
-            self.recording_dir = Path.home() / "Documents" / "AgentNet" / "recordings"
+            self.recording_dir = Path.home() / "Documents" / "CCAgent" / "recordings"
         if self.temp_dir is None:
-            self.temp_dir = Path.home() / "Documents" / "AgentNet" / "temp"
+            self.temp_dir = Path.home() / "Documents" / "CCAgent" / "temp"
 
 
 @dataclass

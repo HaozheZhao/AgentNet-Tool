@@ -51,12 +51,12 @@ jobs:
               npm run build-flask
               npm run make
               cd out/make
-              mv agentnet-annotator-1.0.0-arm64.dmg ../../..
+              mv ccagent-annotator-1.0.0-arm64.dmg ../../..
         - name: Upload dmg
           uses: actions/upload-artifact@v4
           with: 
-            name: agentnet-annotator-1.0.0-arm64.dmg
-            path: agentnet-annotator-1.0.0-arm64.dmg
+            name: ccagent-annotator-1.0.0-arm64.dmg
+            path: ccagent-annotator-1.0.0-arm64.dmg
 
   upload-to-gdrive:
     name: Upload to Google Drive
@@ -66,13 +66,13 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: agentnet-annotator-1.0.0-arm64.dmg
+          name: ccagent-annotator-1.0.0-arm64.dmg
           path: .
       - name: Upload to gdrive
         uses: adityak74/google-drive-upload-git-action@main
         with:
           credentials: ${{ secrets.CREDENTIALS }}
-          filename: "agentnet-annotator-1.0.0-arm64.dmg"
-          name: "agentnet-annotator-1.0.0-arm64.dmg"
+          filename: "ccagent-annotator-1.0.0-arm64.dmg"
+          name: "ccagent-annotator-1.0.0-arm64.dmg"
           folderId: ${{ secrets.MAIN_FOLDER_ID }}
           overwrite: "true"

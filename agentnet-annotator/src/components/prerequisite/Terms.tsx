@@ -24,7 +24,7 @@ const TermsAndConsent: React.FC<TermsAndConsentProps> = ({ onAgree, onDisagree }
     return (
         <div className="bg-white px-6 py-32 lg:px-8">
             <div className="mx-auto max-w-5xl text-base leading-7 text-gray-700">
-                <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">AgentNet User Consent Form</h1>
+                <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">CCAgent User Consent Form</h1>
                 <div className="mt-10 max-w-5xl">
                     <div className="bg-gray-100 p-6 rounded-lg shadow-inner overflow-y-auto font-serif text-sm" style={{ height: "60vh", maxHeight: '50%' }}>
                         <h2 className="text-2xl font-bold mb-4">Overview</h2>
@@ -54,7 +54,7 @@ You may ask for deletion of any data collected from you if your personal informa
                             <li>You may not reverse engineer, decompile, access the source code, or distribute, sell, modify, or misuse the software and its data.</li>
                         </ul>
                         <h3 className="text-xl font-bold mt-6 mb-2">Contact Us</h3>
-                        <p className="mb-4">If you have any questions, concerns, or feedback related to this study, please feel free to contact: xlang.agentnet@gmail.com</p>
+                        <p className="mb-4">If you have any questions, concerns, or feedback related to this study, please feel free to contact: xlang.ccagent@gmail.com</p>
                         
                     </div>
 
@@ -86,7 +86,7 @@ You may ask for deletion of any data collected from you if your personal informa
                             className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 mr-2"
                         />
                         <label className="text-sm font-semibold leading-6 text-gray-900">
-                        I have read and understood the information provided in this consent form and voluntarily agreed to participate in AgentNet study.
+                        I have read and understood the information provided in this consent form and voluntarily agreed to participate in CCAgent study.
                         </label>
                     </div>
                     <button

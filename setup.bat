@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 echo ==========================================
-echo AgentNet Annotator Setup Script (Windows)
+echo CCAgent Annotator Setup Script (Windows)
 echo ==========================================
 
 :: Get the directory where this script lives

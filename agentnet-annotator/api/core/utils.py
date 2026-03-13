@@ -209,7 +209,7 @@ def get_review_recordings_dir() -> str:
         documents_folder = Path(sys._MEIPASS) / "ReviewRecordings"
     else:
         # This is for dev
-        documents_folder = Path.home() / "Documents" / "AgentNetReviewRecordings"
+        documents_folder = Path.home() / "Documents" / "CCAgentReviewRecordings"
 
     if not documents_folder.is_dir():
         ensure_dir_exists(documents_folder)
@@ -224,7 +224,7 @@ def get_recordings_dir() -> str:
         documents_folder = Path(sys._MEIPASS) / "Recordings"
     else:
         # This is for dev
-        documents_folder = Path.home() / "Documents" / "AgentNetRecordings"
+        documents_folder = Path.home() / "Documents" / "CCAgentRecordings"
 
     if not documents_folder.is_dir():
         ensure_dir_exists(documents_folder)
@@ -556,7 +556,7 @@ def send_notification(title, message):
         #     title=title,
         #     message=message,
         #     timeout=10,
-        #     app_name="AgentNet",
+        #     app_name="CCAgent",
         # )
 
 
@@ -637,5 +637,5 @@ def extract_frames_from_video(
 
 
 # if __name__ == "__main__":
-#     directory = r"C:\Users\14308\Documents\AgentNetRecordings\cc21174d-6956-4cfa-a089-b57524416363"
+#     directory = r"C:\Users\14308\Documents\CCAgentRecordings\cc21174d-6956-4cfa-a089-b57524416363"
 #     check_recording_completeness(directory)

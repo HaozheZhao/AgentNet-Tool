@@ -1,4 +1,4 @@
-# AgentNet Annotator
+# CCAgent Annotator
 
 A desktop annotation tool for recording and labeling GUI interactions across Windows, Ubuntu, and macOS. Captures full video, keyboard/mouse inputs, accessibility trees, and HTML/DOM data during task execution. Built with Electron (frontend) + Flask (backend) + OBS Studio (screen recording).
 
@@ -17,8 +17,8 @@ A desktop annotation tool for recording and labeling GUI interactions across Win
 ## Architecture
 
 ```
-AgentNet-Tool/
-├── agentnet-annotator/          # Main application
+CCAgent-Tool/
+├── ccagent-annotator/           # Main application
 │   ├── src/                     # Electron frontend (React + TypeScript)
 │   │   ├── components/          # UI components
 │   │   │   ├── Homepage/        # Recording start/stop interface
@@ -84,13 +84,13 @@ recordings/<recording_id>/
 ### Installation
 
 ```bash
-git clone https://github.com/HaozheZhao/AgentNet-Tool.git
-cd AgentNet-Tool
+git clone https://github.com/HaozheZhao/CCAgent-Tool.git
+cd CCAgent-Tool
 chmod +x setup.sh
 ./setup.sh
 ```
 
-This installs Miniconda (if needed), Node.js 18 (if needed), AT-SPI system packages for accessibility support, creates an `agentnet` conda environment with Python 3.11, and installs all dependencies including OpenCV with GStreamer support.
+This installs Miniconda (if needed), Node.js 18 (if needed), AT-SPI system packages for accessibility support, creates a conda environment with Python 3.11, and installs all dependencies including OpenCV with GStreamer support.
 
 ### Configuration
 
@@ -119,12 +119,12 @@ Configure OBS Studio following [OBS_SETUP.md](OBS_SETUP.md).
 ### Installation
 
 ```cmd
-git clone https://github.com/HaozheZhao/AgentNet-Tool.git
-cd AgentNet-Tool
+git clone https://github.com/HaozheZhao/CCAgent-Tool.git
+cd CCAgent-Tool
 setup.bat
 ```
 
-This automatically downloads and installs Miniconda (Python 3.11) and Node.js 18 if not found, creates an `agentnet` conda environment, and installs all dependencies.
+This automatically downloads and installs Miniconda (Python 3.11) and Node.js 18 if not found, creates a conda environment, and installs all dependencies.
 
 ### Configuration
 
@@ -224,7 +224,7 @@ Each uploaded recording contains:
 
 ## HTML/DOM Capture (Optional)
 
-To capture HTML snapshots during recording (useful for web-based tasks), install the [AgentNet Chrome Plugin](https://github.com/fyq5166/AgentNet-Chrome-Plugin) in Google Chrome. The plugin automatically sends DOM data to the backend during recording.
+To capture HTML snapshots during recording (useful for web-based tasks), install the [CCAgent Chrome Plugin](https://github.com/fyq5166/AgentNet-Chrome-Plugin) in Google Chrome. The plugin automatically sends DOM data to the backend during recording.
 
 ---
 
@@ -244,13 +244,13 @@ Requires Python >= 3.11 and Node.js >= 18.
 
 ```bash
 pip install -r requirements_ubuntu.txt  # or requirements_windows.txt
-cd agentnet-annotator
+cd ccagent-annotator
 npm install
 npm run build-flask   # Build backend
 npm run make          # Build Electron app
 ```
 
-The built application will be in `agentnet-annotator/out/`.
+The built application will be in `ccagent-annotator/out/`.
 
 ---
 

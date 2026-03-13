@@ -360,7 +360,7 @@ export default function Sidebar({ tasks, init_open }: SidebarProps) {
                 <ColorSchemeToggle />
                 {open && (
                     <Typography level="title-lg" sx={{ color: "text.primary" }}>
-                        AgentNet
+                        CCAgent
                     </Typography>
                 )}
             </Box>

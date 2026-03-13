@@ -33,7 +33,7 @@ const Dashboard = () => {
                     fontSize: "18px", // Optional: Adjust the font size
                 }}
             >
-                You are banned from AgentNet due to violation of our terms and conditions.
+                You are banned from CCAgent due to violation of our terms and conditions.
             </div>
         );
     } else if (userData.user_type === "REGULAR") {

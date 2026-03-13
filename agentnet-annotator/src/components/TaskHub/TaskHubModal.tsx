@@ -380,7 +380,7 @@ export const TaskHubModal: React.FC<TaskHubModalProps> = ({
                                 maxWidth: "75%",
                             }}
                         >
-                            You are banned from AgentNet due to violation of our
+                            You are banned from CCAgent due to violation of our
                             terms and conditions.
                         </DialogPanel>
                     ) : (

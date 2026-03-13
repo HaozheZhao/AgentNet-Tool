@@ -22,8 +22,8 @@ from controllers.system_controller import SystemController
 from engineio.async_drivers import gevent
 
 
-class AgentNetBackend:
-    """Refactored AgentNet Backend with modular architecture."""
+class CCAgentBackend:
+    """Refactored CCAgent Backend with modular architecture."""
 
     def __init__(self):
         logger.info("Backend: Initializing modular backend")
@@ -158,7 +158,7 @@ class AgentNetBackend:
             logger.exception(f"Backend: Error during shutdown: {e}")
 
 
-def create_signal_handler(backend: AgentNetBackend):
+def create_signal_handler(backend: CCAgentBackend):
     """Create signal handler for graceful shutdown."""
 
     def signal_handler(sig, frame):
@@ -184,7 +184,7 @@ def create_signal_handler(backend: AgentNetBackend):
 def main():
     """Main entry point for the application."""
     try:
-        backend = AgentNetBackend()
+        backend = CCAgentBackend()
 
         # Setup signal handler
         signal.signal(signal.SIGINT, create_signal_handler(backend))

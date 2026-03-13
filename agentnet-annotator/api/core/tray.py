@@ -29,7 +29,7 @@ def create_icon(color, text=None):
 
 class AwesomeStatusBarApp(rumps.App):
     def __init__(self, message_queue):
-        super().__init__("Agentnet")
+        super().__init__("CCAgent")
         self.icon = None
         self.icon_path = "/tmp/icon.png"
         self.message_queue = message_queue

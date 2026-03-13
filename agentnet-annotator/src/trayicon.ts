@@ -17,7 +17,7 @@ export function createTray(app: Electron.App): Tray {
     { label: "Quit", click: () => app.quit() },
   ]);
 
-  tray.setTitle("AgentNet");
+  tray.setTitle("CCAgent");
   tray.setContextMenu(contextMenu);
 
   return tray;
@@ -61,7 +61,7 @@ export function StopRecording(): void {
       .createFromDataURL(ICON_BASE64)
       .resize({ width: 16, height: 16 });
     tray.setImage(icon);
-    tray?.setTitle("AgentNet");
+    tray?.setTitle("CCAgent");
     old_color = "green";
   }
 }

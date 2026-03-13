@@ -58,7 +58,7 @@ def check_user_data():
         if (not user_id) or (user_id == "undefined"):
             return jsonify({
                         "status": FAILED,
-                        "message": "Please Login to Use AgentNet",
+                        "message": "Please Login to Use CCAgent",
                         "data": None,
                     }), 400
 

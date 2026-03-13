@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# AgentNet Annotator - Start Script
-# This script starts the AgentNet Annotator application
+# CCAgent Annotator - Start Script
+# This script starts the CCAgent Annotator application
 
 set -e
 
@@ -82,7 +82,7 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}Starting AgentNet Annotator...${NC}"
+echo -e "${GREEN}Starting CCAgent Annotator...${NC}"
 echo "Python: $(which python) ($(python --version 2>&1))"
 echo "Node: $(which node) ($(node --version))"
 echo ""

@@ -380,12 +380,6 @@ class Reducer:
                         self.reduced_actions[-1].append(event)
                     # logger.warning("{} Apend type {} {}".format(len(self.reduced_actions), idx, event))
                     # logger.error(self.reduced_actions[-1].key_names)
-                elif (
-                    self.reduced_actions[-1].action == "press"
-                    and self.reduced_actions[-1].is_typing()
-                ):
-                    self.reduced_actions[-1].children[0].append(Type(event))
-                    self.reduced_actions[-1].transform()
                 else:
                     self.reduced_actions.append(Type(event))
                     # logger.warning("{} Add type {} {}".format(len(self.reduced_actions), idx, event))
@@ -598,7 +592,7 @@ class Reducer:
         return None
 
     def _find_last_close_complete_identical_click(self, click_action, idx):
-        if idx == 1:
+        if idx == 0:
             return None
 
         for i in range(idx - 1, -1, -1):
@@ -1032,6 +1026,43 @@ class Reducer:
 
         self.reduced_actions = actions
 
+    def _flatten_shift_types(self):
+        """Convert Press(shift) with Type children into plain Type actions.
+
+        When the user types Shift+H, pynput reports 'H' directly. The Shift
+        modifier is already encoded in the character itself, so the Press(shift)
+        wrapper is redundant for typing. Flattening allows the Type to merge
+        with adjacent Types, producing e.g. type("Hello") instead of
+        press(shift) + type("H") followed by type("ello").
+        """
+        new_actions = []
+        for action in self.reduced_actions:
+            if action.action == "press" and action.is_typing():
+                for child in action.children:
+                    if isinstance(child, Type):
+                        child.complete = True
+                        child.vis = True
+                        child.transformed = False
+                        new_actions.append(child)
+            else:
+                new_actions.append(action)
+        self.reduced_actions = new_actions
+
+    def _remove_empty_types(self):
+        """Remove Type actions that resolve to empty text.
+
+        Standalone functional keys like CapsLock or NumLock create Type actions
+        that resolve to empty strings. These are not meaningful user actions
+        and should be removed.
+        """
+        self.reduced_actions = [
+            a for a in self.reduced_actions
+            if not (a.action == "type"
+                    and hasattr(a, 'resolved_text')
+                    and a.resolved_text is not None
+                    and not a.resolved_text.strip())
+        ]
+
     def _split_terminal_types(self):
         """Split Type actions at Enter boundaries when in a terminal app.
 
@@ -1118,8 +1149,10 @@ class Reducer:
             self._load_top_window_data()
             self.compress(events)
             self.reduce_all()
+            self._flatten_shift_types()
             self._split_terminal_types()
             self.transform()
+            self._remove_empty_types()
             self.finish()
 
             event_buffer_path = os.path.join(recording_path, "event_buffer.jsonl")

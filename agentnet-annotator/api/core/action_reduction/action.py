@@ -570,6 +570,11 @@ class Click(Action):  # single, double, triple, drag
             self.vis = False
         self.action_start_video_buffer_time = 0.5
         self.action_end_video_buffer_time = 0.1
+        self.vis_dump_attrs = [
+            "id", "action", "description", "justification",
+            "start_time", "end_time", "time_stamp", "depth",
+            "coordinate", "button", "click_type",
+        ]
 
     def _is_long_press(self):
         if self.children:

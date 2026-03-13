@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-echo Starting AgentNet Annotator...
+echo Starting CCAgent Annotator...
 
 :: ==========================================
 :: 1. Load .env file if it exists
@@ -81,7 +81,7 @@ if exist "C:\Program Files\nodejs\npm.cmd" (
 :: ==========================================
 
 echo:
-echo Starting AgentNet Annotator application...
+echo Starting CCAgent Annotator application...
 echo Close this window or press Ctrl+C to stop
 echo:
 cd agentnet-annotator

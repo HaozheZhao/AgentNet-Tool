@@ -1,4 +1,4 @@
-"""Core v2 - Refactored modular architecture for AgentNet."""
+"""Core v2 - Refactored modular architecture for CCAgent."""
 
 from .config import CoreConfig, RecordingConfig, AccessibilityConfig
 from .events import EventBus, Event, EventType
