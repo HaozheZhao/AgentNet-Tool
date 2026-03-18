@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import threading
 from platform import system
 
 import obsws_python as obs
@@ -106,14 +107,18 @@ class OBSClient:
         self.event_client = obs.EventClient()
         
         self.record_state_events = {}
-        
+        self._record_stopped_event = threading.Event()
+
         def on_record_state_changed(data):
             output_state = data.output_state
             print("record state changed:", output_state)
             if output_state not in self.record_state_events:
                 self.record_state_events[output_state] = []
             self.record_state_events[output_state].append(time.perf_counter())
-        
+            # Signal when OBS has fully stopped recording (file is finalized)
+            if output_state == "OBS_WEBSOCKET_OUTPUT_STOPPED":
+                self._record_stopped_event.set()
+
         self.event_client.callback.register(on_record_state_changed)
 
         self.old_profile = self.req_client.get_profile_list().current_profile_name
@@ -235,7 +240,14 @@ class OBSClient:
         self.req_client.start_record()
 
     def stop_recording(self):
+        self._record_stopped_event.clear()
         self.req_client.stop_record()
+        # Wait for OBS to fully finalize the MP4 file (flush buffers, write
+        # moov atom, close file handle).  On Windows this can take several
+        # seconds for large recordings.  Without this wait the file may be
+        # incomplete, locked, or missing when the reducer / uploader runs.
+        if not self._record_stopped_event.wait(timeout=30):
+            logger.warning("OBSClient: timed out waiting for OBS to finish writing video file")
         self.req_client.set_current_profile(self.old_profile) # restore old profile
 
     def pause_recording(self):
