@@ -246,8 +246,13 @@ class OBSClient:
         # moov atom, close file handle).  On Windows this can take several
         # seconds for large recordings.  Without this wait the file may be
         # incomplete, locked, or missing when the reducer / uploader runs.
-        # No timeout — long recordings (400+ steps) can take a while to finalize.
-        self._record_stopped_event.wait()
+        # Poll in 10-second intervals with progress logging so we can
+        # distinguish "still writing" from "truly stuck".
+        elapsed = 0
+        while not self._record_stopped_event.wait(timeout=10):
+            elapsed += 10
+            logger.info(f"OBSClient: waiting for OBS to finalize video file... ({elapsed}s elapsed)")
+        logger.info(f"OBSClient: OBS video file finalized after ~{elapsed}s")
         self.req_client.set_current_profile(self.old_profile) # restore old profile
 
     def pause_recording(self):
