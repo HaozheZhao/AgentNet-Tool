@@ -1137,36 +1137,65 @@ class Reducer:
         self.reduced_actions = new_actions
 
     def reduce_pipeline(self):
+        recording_path = self.recording_path
+        start_time = time.perf_counter()
+
+        # --- Log all files present before processing ---
         try:
-            start_time = time.perf_counter()
-            recording_path = self.recording_path
-            events = read_encrypted_jsonl(
-                path=os.path.join(recording_path, "events.jsonl")
-            )
+            all_files = []
+            for root, dirs, files in os.walk(recording_path):
+                for f in files:
+                    fp = os.path.join(root, f)
+                    size = os.path.getsize(fp)
+                    rel = os.path.relpath(fp, recording_path)
+                    all_files.append((rel, size))
+            all_files.sort()
+            logger.info(f"reduce_pipeline: recording={recording_path}, "
+                        f"files before processing ({len(all_files)}):")
+            for rel, size in all_files:
+                logger.info(f"  {rel}  ({size} bytes)")
+        except Exception as e:
+            logger.warning(f"reduce_pipeline: failed to list files: {e}")
 
+        try:
+            # --- Read raw events ---
+            events_path = os.path.join(recording_path, "events.jsonl")
+            if not os.path.exists(events_path):
+                logger.error(f"reduce_pipeline: events.jsonl not found at {events_path}")
+                return
+            events = read_encrypted_jsonl(path=events_path)
+            logger.info(f"reduce_pipeline: loaded {len(events)} raw events")
+
+            # --- Clear only regenerated outputs (video clips) ---
+            # reduced_events_*.jsonl and event_buffer.jsonl are overwritten
+            # by write_encrypted_jsonl, so no need to delete them first.
             video_path = os.path.join(recording_path, "video_clips")
-            if os.path.exists(video_path):
-                if os.path.isdir(video_path):
-                    shutil.rmtree(video_path)
-                    os.makedirs(video_path, exist_ok=True)
-            if os.path.exists(os.path.join(recording_path, "reduced_events_vis.jsonl")):
-                os.remove(os.path.join(recording_path, "reduced_events_vis.jsonl"))
-            if os.path.exists(
-                os.path.join(recording_path, "reduced_events_complete.jsonl")
-            ):
-                os.remove(os.path.join(recording_path, "reduced_events_complete.jsonl"))
+            if os.path.exists(video_path) and os.path.isdir(video_path):
+                shutil.rmtree(video_path)
+            os.makedirs(video_path, exist_ok=True)
 
+            # --- Core reduction pipeline ---
             self._load_top_window_data()
+            logger.info("reduce_pipeline: compress")
             self.compress(events)
+            logger.info(f"reduce_pipeline: compress done, event_buffer={len(self.event_buffer)}")
+
+            logger.info("reduce_pipeline: reduce_all")
             self.reduce_all()
+            logger.info(f"reduce_pipeline: reduce_all done, actions={len(self.reduced_actions)}")
+
             self._flatten_shift_types()
             self._split_terminal_types()
-            self.transform()
-            self.finish()
 
+            logger.info("reduce_pipeline: transform")
+            self.transform()
+
+            logger.info("reduce_pipeline: finish")
+            self.finish()
+            logger.info(f"reduce_pipeline: finish done, final actions={len(self.reduced_actions)}")
+
+            # --- Write event buffer ---
             event_buffer_path = os.path.join(recording_path, "event_buffer.jsonl")
-            if os.path.exists(event_buffer_path):
-                os.remove(event_buffer_path)
             write_encrypted_jsonl(event_buffer_path, data=self.event_buffer)
 
             if self.flatten:
@@ -1175,34 +1204,57 @@ class Reducer:
             for i, action in enumerate(self.reduced_actions):
                 action.set_id(i)
 
-            # TODO: delete former video clips
-
+            # --- Match accessibility data ---
             if self.generate_window_a11y:
+                logger.info("reduce_pipeline: match_axtree")
                 self.match_axtree()
             if self.generate_element_a11y:
+                logger.info("reduce_pipeline: match_element")
                 self.match_element()
 
+            # --- Dump reduced events ---
+            logger.info("reduce_pipeline: writing reduced_events_complete.jsonl and reduced_events_vis.jsonl")
             self.complete_dump(recording_path)
             self.vis_dump(recording_path)
 
+            # --- Generate video clips ---
             with open(os.path.join(recording_path, "metadata.json"), "r") as f:
                 metadata = json.load(f)
             video_start_time = metadata["video_start_timestamp"]
             video_attrs = {"video_start_time": video_start_time}
             time.sleep(1)
+            logger.info(f"reduce_pipeline: generating video clips for {len(self.reduced_actions)} actions")
             self.process_actions_multithreaded(
                 recording_path=recording_path,
                 video_attrs=video_attrs,
                 window_attrs=self.window_attrs,
             )
-            reduction_time = time.perf_counter() - start_time
 
+            reduction_time = time.perf_counter() - start_time
             logger.info(
-                f"Reducer: action num: {len(self.reduced_actions)}, reduce time: {reduction_time}"
+                f"reduce_pipeline: completed. actions={len(self.reduced_actions)}, time={reduction_time:.1f}s"
             )
 
         except Exception as e:
             logger.exception(f"reduce_pipeline failed: {str(e)}")
+            # Data on disk is preserved — only video_clips/ (regenerated) was cleared.
+            # The original MP4, events.jsonl, and all raw data remain intact.
+
+        # --- Log all files present after processing ---
+        try:
+            all_files = []
+            for root, dirs, files in os.walk(recording_path):
+                for f in files:
+                    fp = os.path.join(root, f)
+                    size = os.path.getsize(fp)
+                    rel = os.path.relpath(fp, recording_path)
+                    all_files.append((rel, size))
+            all_files.sort()
+            logger.info(f"reduce_pipeline: files after processing ({len(all_files)}):")
+            for rel, size in all_files:
+                logger.info(f"  {rel}  ({size} bytes)")
+        except Exception as e:
+            logger.warning(f"reduce_pipeline: failed to list files after processing: {e}")
 
 
 def visualize_recording(
