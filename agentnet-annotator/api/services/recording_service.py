@@ -75,6 +75,7 @@ class RecordingService:
                     "generate_window_a11y": self.generate_window_a11y,
                     "generate_element_a11y": self.generate_element_a11y,
                 },
+                socketio=self.socketio,
             )
 
             # Handle task hub data if provided

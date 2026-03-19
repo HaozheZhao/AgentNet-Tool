@@ -69,7 +69,7 @@ else:
 
 
 class Reducer:
-    def __init__(self, recording_path, window_attrs, configs) -> None:
+    def __init__(self, recording_path, window_attrs, configs, socketio=None) -> None:
         self.recording_path = recording_path
         self.reduced_actions = []
         self.event_buffer = []
@@ -81,6 +81,7 @@ class Reducer:
         self.last_reduced_buffer_idx = 0
         self.pre_move = None
         self.window_attrs = window_attrs
+        self.socketio = socketio
 
         self.terminate_method = "click"
         self.generate_window_a11y = configs["generate_window_a11y"]
@@ -89,6 +90,15 @@ class Reducer:
 
         self.reduce_status = {}
         self._top_window_data = []  # loaded during reduce_pipeline
+
+    def _emit_progress(self, stage, progress, message):
+        """Emit reduce progress to the frontend via socketio."""
+        if self.socketio:
+            self.socketio.emit("reduce_progress", {
+                "stage": stage,
+                "progress": progress,
+                "message": message,
+            })
 
     def _load_top_window_data(self):
         """Load top_window.jsonl for terminal detection during type splitting."""
@@ -1159,9 +1169,11 @@ class Reducer:
 
         try:
             # --- Read raw events ---
+            self._emit_progress("loading", 0, "Loading raw events...")
             events_path = os.path.join(recording_path, "events.jsonl")
             if not os.path.exists(events_path):
                 logger.error(f"reduce_pipeline: events.jsonl not found at {events_path}")
+                self._emit_progress("error", 0, "events.jsonl not found")
                 return
             events = read_encrypted_jsonl(path=events_path)
             logger.info(f"reduce_pipeline: loaded {len(events)} raw events")
@@ -1175,11 +1187,13 @@ class Reducer:
             os.makedirs(video_path, exist_ok=True)
 
             # --- Core reduction pipeline ---
+            self._emit_progress("compress", 10, "Compressing events...")
             self._load_top_window_data()
             logger.info("reduce_pipeline: compress")
             self.compress(events)
             logger.info(f"reduce_pipeline: compress done, event_buffer={len(self.event_buffer)}")
 
+            self._emit_progress("reduce", 25, "Reducing actions...")
             logger.info("reduce_pipeline: reduce_all")
             self.reduce_all()
             logger.info(f"reduce_pipeline: reduce_all done, actions={len(self.reduced_actions)}")
@@ -1187,6 +1201,7 @@ class Reducer:
             self._flatten_shift_types()
             self._split_terminal_types()
 
+            self._emit_progress("transform", 40, "Transforming actions...")
             logger.info("reduce_pipeline: transform")
             self.transform()
 
@@ -1195,6 +1210,7 @@ class Reducer:
             logger.info(f"reduce_pipeline: finish done, final actions={len(self.reduced_actions)}")
 
             # --- Write event buffer ---
+            self._emit_progress("saving", 55, "Saving event buffer...")
             event_buffer_path = os.path.join(recording_path, "event_buffer.jsonl")
             write_encrypted_jsonl(event_buffer_path, data=self.event_buffer)
 
@@ -1206,13 +1222,16 @@ class Reducer:
 
             # --- Match accessibility data ---
             if self.generate_window_a11y:
+                self._emit_progress("a11y", 60, "Matching accessibility tree...")
                 logger.info("reduce_pipeline: match_axtree")
                 self.match_axtree()
             if self.generate_element_a11y:
+                self._emit_progress("element", 65, "Matching UI elements...")
                 logger.info("reduce_pipeline: match_element")
                 self.match_element()
 
             # --- Dump reduced events ---
+            self._emit_progress("dump", 75, "Writing reduced events...")
             logger.info("reduce_pipeline: writing reduced_events_complete.jsonl and reduced_events_vis.jsonl")
             self.complete_dump(recording_path)
             self.vis_dump(recording_path)
@@ -1223,6 +1242,7 @@ class Reducer:
             video_start_time = metadata["video_start_timestamp"]
             video_attrs = {"video_start_time": video_start_time}
             time.sleep(1)
+            self._emit_progress("video", 80, f"Generating video clips ({len(self.reduced_actions)} actions)...")
             logger.info(f"reduce_pipeline: generating video clips for {len(self.reduced_actions)} actions")
             self.process_actions_multithreaded(
                 recording_path=recording_path,
@@ -1231,12 +1251,14 @@ class Reducer:
             )
 
             reduction_time = time.perf_counter() - start_time
+            self._emit_progress("done", 100, f"Processing complete ({reduction_time:.1f}s)")
             logger.info(
                 f"reduce_pipeline: completed. actions={len(self.reduced_actions)}, time={reduction_time:.1f}s"
             )
 
         except Exception as e:
             logger.exception(f"reduce_pipeline failed: {str(e)}")
+            self._emit_progress("error", -1, f"Processing failed: {str(e)}")
             # Data on disk is preserved — only video_clips/ (regenerated) was cleared.
             # The original MP4, events.jsonl, and all raw data remain intact.
 

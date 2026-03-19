@@ -11,6 +11,7 @@ import {
     Snackbar,
     Box,
     CircularProgress,
+    LinearProgress,
     Typography,
     Card,
     CardContent,
@@ -159,6 +160,11 @@ interface MainContextType {
     setSuggestions: React.Dispatch<React.SetStateAction<string[]>>;
     tutorials: tutorialProps[] | null;
     setTutorials: React.Dispatch<React.SetStateAction<tutorialProps[] | null>>;
+
+    // Reduce progress
+    reduceProgress: number;
+    reduceProgressMsg: string;
+    isProcessing: boolean;
 }
 
 const MainContext = createContext<MainContextType | undefined>(undefined);
@@ -198,6 +204,11 @@ export const MainProvider: React.FC<{ children: ReactNode }> = ({
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [tutorials, setTutorials] = useState<tutorialProps[] | null>(null);
 
+    // Reduce progress state
+    const [reduceProgress, setReduceProgress] = useState(0);
+    const [reduceProgressMsg, setReduceProgressMsg] = useState("");
+    const [isProcessing, setIsProcessing] = useState(false);
+
     // Use useRef here to make sure StartRecord&StopRecord takes the new value of username
     const isRecordingRef = useRef(isRecording);
 
@@ -224,9 +235,23 @@ export const MainProvider: React.FC<{ children: ReactNode }> = ({
     useEffect(() => {
         SocketService.Listen("reduced", (response) => {
             console.log("reduced");
+            setIsProcessing(false);
+            setReduceProgress(100);
+            setReduceProgressMsg("Processing complete");
             setTimeout(() => {
+                setReduceProgress(0);
+                setReduceProgressMsg("");
                 fetchTasks();
             }, 1500);
+        });
+        SocketService.Listen("reduce_progress", (response) => {
+            console.log("reduce_progress:", response);
+            setIsProcessing(true);
+            setReduceProgress(response.progress ?? 0);
+            setReduceProgressMsg(response.message ?? "");
+            if (response.stage === "error") {
+                setIsProcessing(false);
+            }
         });
         SocketService.Listen("recording_warning", (response) => {
             console.warn("Recording warning:", response.message);
@@ -577,6 +602,9 @@ export const MainProvider: React.FC<{ children: ReactNode }> = ({
                 setSuggestions,
                 tutorials,
                 setTutorials,
+                reduceProgress,
+                reduceProgressMsg,
+                isProcessing,
             }}
         >
             {children}
@@ -589,47 +617,44 @@ export const MainProvider: React.FC<{ children: ReactNode }> = ({
             >
                 {message}
             </Snackbar>
-            {/* {loading && (
+            {isProcessing && (
                 <Box
-                    position="fixed"
-                    top="10%"
-                    left="50%"
-                    display="flex"
-                    alignItems="center"
-                    flexDirection="column"
-                    p={2}
-                    bgcolor="background.paper"
-                    boxShadow={3}
-                    borderRadius={1}
-                    zIndex={1300} // Higher than most components, just below Snackbar at 1400
+                    sx={{
+                        position: "fixed",
+                        top: "10%",
+                        left: "50%",
+                        transform: "translate(-50%, 0)",
+                        zIndex: 1300,
+                        minWidth: 320,
+                    }}
                 >
                     <Card
+                        variant="outlined"
                         sx={{
-                            position: "fixed",
-                            top: "10%",
-                            left: "50%",
-                            transform: "translate(-50%, 0)",
-                            display: "flex",
-                            alignItems: "center",
-                            padding: "16px",
-                            boxShadow: 3,
-                            borderRadius: 5,
-                            zIndex: 1300, // Higher than most components, just below Snackbar at 1400
+                            p: 2,
+                            borderRadius: "xl",
+                            boxShadow: "lg",
                         }}
                     >
-                        <CardContent
-                            sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                flexDirection: "row",
-                            }}
-                        >
-                            <CircularProgress />
-                            <Typography>{progressMsg}</Typography>
+                        <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                            <CircularProgress size="sm" />
+                            <Box sx={{ flex: 1 }}>
+                                <Typography level="title-sm" sx={{ mb: 0.5 }}>
+                                    {reduceProgressMsg || "Processing recording..."}
+                                </Typography>
+                                <LinearProgress
+                                    determinate
+                                    value={reduceProgress}
+                                    sx={{ height: 6, borderRadius: 3 }}
+                                />
+                            </Box>
+                            <Typography level="body-xs" sx={{ minWidth: 36, textAlign: "right" }}>
+                                {reduceProgress}%
+                            </Typography>
                         </CardContent>
                     </Card>
                 </Box>
-            )}{" "} */}
+            )}
         </MainContext.Provider>
     );
 };
